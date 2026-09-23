@@ -6,6 +6,7 @@ import clubmanagement.exception.MemberNotFoundException;
 import clubmanagement.model.Member;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -13,8 +14,6 @@ import java.util.List;
  * cap nhat, sap xep.
  *
  * MODULE: BIEN
- * Chi duoc sua trong file nay va Member.java (neu can).
- * Khong sua cac file thuoc module cua Nhat Minh (Event) de tranh git conflict.
  */
 public class MemberService {
 
@@ -35,7 +34,30 @@ public class MemberService {
      * Edge cases: id trung lap phan biet chu hoa/thuong? (mac dinh: khong phan biet).
      */
     public void addMember(Member member) throws DuplicateMemberException, InvalidInputException {
-        // TODO: BIEN
+        // Kiem tra member null
+        if (member == null) {
+            throw new InvalidInputException("Member khong duoc null");
+        }
+
+        // Kiem tra id, name, email null 
+        if (member.getId() == null || member.getId().trim().isEmpty()
+                || member.getName() == null || member.getName().trim().isEmpty()
+                || member.getEmail() == null || member.getEmail().trim().isEmpty()) {
+
+            throw new InvalidInputException("ID, name va email khong duoc rong");
+        }
+
+        // Kiem tra ID trung, khong pbiet hoa thuong
+        for (Member m : members) {
+            if (m.getId().equalsIgnoreCase(member.getId())) {
+                throw new DuplicateMemberException(
+                        "Member ID da ton tai: " + member.getId()
+                );
+            }
+        }
+
+        // Neu hop le thi them vao danh sach
+        members.add(member);
     }
 
     /**
@@ -46,7 +68,22 @@ public class MemberService {
      *  - Nguoc lai xoa thanh vien khoi danh sach.
      */
     public void removeMember(String memberId) throws MemberNotFoundException {
-        // TODO: BIEN
+       if (memberId == null || memberId.trim().isEmpty()) {
+            throw new MemberNotFoundException(
+                    "Khong tim thay member voi ID: " + memberId
+            );
+        }
+
+        for (int i = 0; i < members.size(); i++) {
+            if (members.get(i).getId().equalsIgnoreCase(memberId.trim())) {
+                members.remove(i);
+                return;
+            }
+        }
+
+        throw new MemberNotFoundException(
+                "Khong tim thay member voi ID: " + memberId
+        );
     }
 
     /**
@@ -55,8 +92,17 @@ public class MemberService {
      * Neu khong tim thay -> throw MemberNotFoundException.
      */
     public Member searchMemberById(String memberId) throws MemberNotFoundException {
-        // TODO: BIEN
-        return null;
+         if (memberId != null) {
+            for (Member member : members) {
+                if (member.getId().equalsIgnoreCase(memberId.trim())) {
+                    return member;
+                }
+            }
+        }
+
+        throw new MemberNotFoundException(
+                "Khong tim thay member voi ID: " + memberId
+        );
     }
 
     /**
@@ -65,8 +111,26 @@ public class MemberService {
      * Neu khong tim thay ai -> tra ve danh sach rong (khong throw exception).
      */
     public List<Member> searchMemberByName(String keyword) {
-        // TODO: BIEN
-        return null;
+         List<Member> result = new ArrayList<>();
+
+        if (keyword == null) {
+            return result;
+        }
+
+        String search = keyword.trim().toLowerCase();
+
+        if (search.isEmpty()) {
+            return result;
+        }
+
+        for (Member member : members) {
+            if (member.getName() != null
+                    && member.getName().toLowerCase().contains(search)) {
+                result.add(member);
+            }
+        }
+
+        return result;
     }
 
     /**
@@ -76,8 +140,7 @@ public class MemberService {
      * encapsulation, tranh code ben ngoai sua truc tiep danh sach goc.
      */
     public List<Member> listAllMembers() {
-        // TODO: BIEN
-        return null;
+      return new ArrayList<>(members);
     }
 
     /**
@@ -87,8 +150,14 @@ public class MemberService {
      * implements Comparable<Member> (tuy chon thiet ke).
      */
     public List<Member> sortMembersByName() {
-        // TODO: BIEN
-        return null;
+       List<Member> result = new ArrayList<>(members);
+
+        result.sort(Comparator.comparing(
+                Member::getName,
+                String.CASE_INSENSITIVE_ORDER
+        ));
+
+        return result;
     }
 
     /**
@@ -97,6 +166,13 @@ public class MemberService {
      * Neu khong tim thay id -> throw MemberNotFoundException.
      */
     public void updateMember(String memberId, String newEmail, String newPhone) throws MemberNotFoundException {
-        // TODO: BIEN
+        String memberId,
+            String newEmail,
+            String newPhone) throws MemberNotFoundException {
+
+        Member member = searchMemberById(memberId);
+
+        member.setEmail(newEmail);
+        member.setPhone(newPhone);
     }
 }
