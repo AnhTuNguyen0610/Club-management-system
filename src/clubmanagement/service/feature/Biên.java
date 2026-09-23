@@ -1,4 +1,4 @@
-```java
+
 package clubmanagement.service;
 
 import clubmanagement.exception.DuplicateMemberException;
@@ -18,7 +18,7 @@ public class MemberService {
         this.members = new ArrayList<>();
     }
 
-
+// Them thanh vien 
     public void addMember(Member member) throws DuplicateMemberException, InvalidInputException {
         // Kiem tra member null
         if (member == null) {
@@ -46,7 +46,7 @@ public class MemberService {
         members.add(member);
     }
 
-  
+  // Xoa thanh vien 
     public void removeMember(String memberId) throws MemberNotFoundException {
        if (memberId == null || memberId.trim().isEmpty()) {
             throw new MemberNotFoundException(
@@ -66,7 +66,7 @@ public class MemberService {
         );
     }
 
-  
+   // Tim kiem tvien theo id 
     public Member searchMemberById(String memberId) throws MemberNotFoundException {
          if (memberId != null) {
             for (Member member : members) {
@@ -81,7 +81,7 @@ public class MemberService {
         );
     }
 
-   
+  // Tim kiem theo ten  
     public List<Member> searchMemberByName(String keyword) {
          List<Member> result = new ArrayList<>();
 
@@ -105,12 +105,12 @@ public class MemberService {
         return result;
     }
 
-    
+    // Liet ke tvine 
     public List<Member> listAllMembers() {
       return new ArrayList<>(members);
     }
 
-  
+  // Sap xep cac thanh vien 
     public List<Member> sortMembersByName() {
        List<Member> result = new ArrayList<>(members);
 
@@ -122,7 +122,7 @@ public class MemberService {
         return result;
     }
 
-   
+   // Cap nhat tvien 
     public void updateMember(String memberId, String newEmail, String newPhone) throws MemberNotFoundException {
         String memberId,
             String newEmail,
@@ -134,4 +134,4 @@ public class MemberService {
         member.setPhone(newPhone);
     }
 }
-```
+
