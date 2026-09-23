@@ -1,3 +1,4 @@
+```java
 package clubmanagement.service;
 
 import clubmanagement.exception.DuplicateMemberException;
@@ -133,3 +134,4 @@ public class MemberService {
         member.setPhone(newPhone);
     }
 }
+```
