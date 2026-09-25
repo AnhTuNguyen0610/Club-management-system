@@ -10,7 +10,7 @@ public class SocialEvent extends Event {
     private String location;
 
     public SocialEvent(String eventId, String eventName, String date, int maxParticipants,
-                        String location) {
+            String location) {
         super(eventId, eventName, date, maxParticipants);
         this.location = location;
     }
@@ -20,9 +20,8 @@ public class SocialEvent extends Event {
     }
 
     /**
-     * TODO: NHAT MINH
      * Business rule:
-     *  - Su kien giao luu mac dinh mien phi -> tra ve 0.
+     * - Su kien giao luu mac dinh mien phi -> tra ve 0.
      * Output: gia tri phi (double), thuong la 0.
      */
     @Override

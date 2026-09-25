@@ -2,6 +2,7 @@ package clubmanagement.ui;
 
 import clubmanagement.exception.DuplicateMemberException;
 import clubmanagement.exception.EventFullException;
+import clubmanagement.exception.EventNotFoundException;
 import clubmanagement.exception.InvalidInputException;
 import clubmanagement.exception.MemberNotFoundException;
 import clubmanagement.model.Event;
@@ -20,7 +21,8 @@ import java.util.Scanner;
  * Lop nay chi lam nhiem vu hien thi + goi cac Service tuong ung,
  * KHONG chua business logic (business logic nam trong Service).
  *
- * Duoc quan ly boi Tech Lead (Anh Tu). Khi Bien va Nhat Minh hoan thanh Service cua minh,
+ * Duoc quan ly boi Tech Lead (Anh Tu). Khi Bien va Nhat Minh hoan thanh Service
+ * cua minh,
  * cac chuc nang trong menu se hoat dong day du.
  */
 public class ConsoleUI {
@@ -205,7 +207,7 @@ public class ConsoleUI {
             Member member = memberService.searchMemberById(memberId);
             eventService.registerMember(eventId, member);
             System.out.println("Dang ky thanh cong!");
-        } catch (MemberNotFoundException | EventFullException e) {
+        } catch (MemberNotFoundException | EventFullException | EventNotFoundException e) {
             System.out.println("Loi: " + e.getMessage());
         }
     }
