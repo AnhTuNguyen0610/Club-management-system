@@ -1,13 +1,17 @@
 package clubmanagement.ui;
 
+import clubmanagement.exception.DuplicateEventException;
 import clubmanagement.exception.DuplicateMemberException;
 import clubmanagement.exception.EventFullException;
 import clubmanagement.exception.EventNotFoundException;
 import clubmanagement.exception.InvalidInputException;
 import clubmanagement.exception.MemberNotFoundException;
+import clubmanagement.model.Competition;
 import clubmanagement.model.Event;
 import clubmanagement.model.Member;
 import clubmanagement.model.MembershipType;
+import clubmanagement.model.SocialEvent;
+import clubmanagement.model.Workshop;
 import clubmanagement.service.ClubService;
 import clubmanagement.service.EventService;
 import clubmanagement.service.MemberService;
@@ -168,6 +172,7 @@ public class ConsoleUI {
         System.out.println("--- QUAN LY SU KIEN ---");
         System.out.println("1. Liet ke tat ca su kien");
         System.out.println("2. Dang ky thanh vien vao su kien");
+        System.out.println("3. Them su kien moi");
         System.out.println("0. Quay lai");
         System.out.print("Nhap lua chon: ");
 
@@ -178,6 +183,9 @@ public class ConsoleUI {
                 break;
             case "2":
                 registerEventFlow();
+                break;
+            case "3":
+                addEventFlow();
                 break;
             case "0":
                 break;
@@ -209,6 +217,69 @@ public class ConsoleUI {
             System.out.println("Dang ky thanh cong!");
         } catch (MemberNotFoundException | EventFullException | EventNotFoundException e) {
             System.out.println("Loi: " + e.getMessage());
+        }
+    }
+
+    private void addEventFlow() {
+        System.out.println();
+        System.out.println("--- THEM SU KIEN MOI ---");
+        System.out.print("Nhap ID su kien: ");
+        String id = scanner.nextLine().trim();
+        System.out.print("Nhap ten su kien: ");
+        String name = scanner.nextLine().trim();
+        System.out.print("Nhap ngay (dd/MM/yyyy): ");
+        String date = scanner.nextLine().trim();
+        
+        System.out.print("Nhap so luong toi da: ");
+        int max = 0;
+        try {
+            max = Integer.parseInt(scanner.nextLine().trim());
+        } catch (NumberFormatException e) {
+            System.out.println("Loi: So luong phai la so nguyen!");
+            return;
+        }
+
+        System.out.println("Chon loai su kien:");
+        System.out.println("1. Workshop");
+        System.out.println("2. Cuoc thi (Competition)");
+        System.out.println("3. Giao luu (Social Event)");
+        System.out.print("Lua chon: ");
+        String type = scanner.nextLine().trim();
+
+        Event event = null;
+        try {
+            switch (type) {
+                case "1":
+                    System.out.print("Nhap phi co ban (baseFee): ");
+                    double baseFee = Double.parseDouble(scanner.nextLine().trim());
+                    System.out.print("Nhap ten dien gia (speaker): ");
+                    String speaker = scanner.nextLine().trim();
+                    event = new Workshop(id, name, date, max, baseFee, speaker);
+                    break;
+                case "2":
+                    System.out.print("Nhap phi dang ky (entryFee): ");
+                    double entryFee = Double.parseDouble(scanner.nextLine().trim());
+                    System.out.print("Nhap gia tri giai thuong (prizeValue): ");
+                    double prizeValue = Double.parseDouble(scanner.nextLine().trim());
+                    event = new Competition(id, name, date, max, entryFee, prizeValue);
+                    break;
+                case "3":
+                    System.out.print("Nhap dia diem (location): ");
+                    String location = scanner.nextLine().trim();
+                    event = new SocialEvent(id, name, date, max, location);
+                    break;
+                default:
+                    System.out.println("Loai su kien khong hop le. Huy thao tac!");
+                    return;
+            }
+
+            eventService.addEvent(event);
+            System.out.println("Them su kien thanh cong!");
+
+        } catch (DuplicateEventException e) {
+            System.out.println("Loi: " + e.getMessage());
+        } catch (NumberFormatException e) {
+            System.out.println("Loi: Vui long nhap dung dinh dang so cho tien/phi!");
         }
     }
 }
