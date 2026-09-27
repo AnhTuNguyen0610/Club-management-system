@@ -111,7 +111,7 @@ public class EventService {
      */
     public Event findEventById(String eventId) {
         for (Event event : events) {
-            if (event.getEventId() == eventId)
+            if (event.getEventId().equalsIgnoreCase(eventId))
                 return event;
         }
         return null;

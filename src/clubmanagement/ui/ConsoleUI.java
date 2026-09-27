@@ -8,6 +8,7 @@ import clubmanagement.exception.InvalidInputException;
 import clubmanagement.exception.MemberNotFoundException;
 import clubmanagement.model.Competition;
 import clubmanagement.model.Event;
+import clubmanagement.model.EventStatus;
 import clubmanagement.model.Member;
 import clubmanagement.model.MembershipType;
 import clubmanagement.model.SocialEvent;
@@ -25,9 +26,9 @@ import java.util.Scanner;
  * Lop nay chi lam nhiem vu hien thi + goi cac Service tuong ung,
  * KHONG chua business logic (business logic nam trong Service).
  *
- * Duoc quan ly boi Tech Lead (Anh Tu). Khi Bien va Nhat Minh hoan thanh Service
- * cua minh,
- * cac chuc nang trong menu se hoat dong day du.
+ * Duoc quan ly boi Tech Lead (Anh Tu). Da noi day du cac chuc nang cua
+ * MemberService (Bien) va EventService (Nhat Minh) vao menu - ban demo
+ * "khung dau tien" da hoan chinh.
  */
 public class ConsoleUI {
 
@@ -88,6 +89,9 @@ public class ConsoleUI {
         System.out.println("2. Xoa thanh vien");
         System.out.println("3. Tim thanh vien theo ID");
         System.out.println("4. Liet ke tat ca thanh vien");
+        System.out.println("5. Tim thanh vien theo ten");
+        System.out.println("6. Cap nhat email/SDT thanh vien");
+        System.out.println("7. Sap xep thanh vien theo ten");
         System.out.println("0. Quay lai");
         System.out.print("Nhap lua chon: ");
 
@@ -104,6 +108,15 @@ public class ConsoleUI {
                 break;
             case "4":
                 listMembersFlow();
+                break;
+            case "5":
+                searchMemberByNameFlow();
+                break;
+            case "6":
+                updateMemberFlow();
+                break;
+            case "7":
+                sortMembersFlow();
                 break;
             case "0":
                 break;
@@ -165,6 +178,46 @@ public class ConsoleUI {
         }
     }
 
+    private void searchMemberByNameFlow() {
+        System.out.print("Nhap ten (hoac mot phan ten) can tim: ");
+        String keyword = scanner.nextLine().trim();
+        List<Member> result = memberService.searchMemberByName(keyword);
+        if (result == null || result.isEmpty()) {
+            System.out.println("Khong tim thay thanh vien nao phu hop.");
+            return;
+        }
+        for (Member m : result) {
+            System.out.println(m);
+        }
+    }
+
+    private void updateMemberFlow() {
+        System.out.print("Nhap ID thanh vien can cap nhat: ");
+        String id = scanner.nextLine().trim();
+        System.out.print("Email moi: ");
+        String email = scanner.nextLine().trim();
+        System.out.print("SDT moi: ");
+        String phone = scanner.nextLine().trim();
+
+        try {
+            memberService.updateMember(id, email, phone);
+            System.out.println("Cap nhat thanh cong!");
+        } catch (MemberNotFoundException e) {
+            System.out.println("Loi: " + e.getMessage());
+        }
+    }
+
+    private void sortMembersFlow() {
+        List<Member> sorted = memberService.sortMembersByName();
+        if (sorted == null || sorted.isEmpty()) {
+            System.out.println("Chua co thanh vien nao.");
+            return;
+        }
+        for (Member m : sorted) {
+            System.out.println(m);
+        }
+    }
+
     // ---------- EVENT MENU ----------
 
     private void eventMenu() {
@@ -173,6 +226,9 @@ public class ConsoleUI {
         System.out.println("1. Liet ke tat ca su kien");
         System.out.println("2. Dang ky thanh vien vao su kien");
         System.out.println("3. Them su kien moi");
+        System.out.println("4. Huy dang ky thanh vien khoi su kien");
+        System.out.println("5. Loc su kien theo trang thai");
+        System.out.println("6. Cap nhat trang thai su kien");
         System.out.println("0. Quay lai");
         System.out.print("Nhap lua chon: ");
 
@@ -186,6 +242,15 @@ public class ConsoleUI {
                 break;
             case "3":
                 addEventFlow();
+                break;
+            case "4":
+                cancelRegistrationFlow();
+                break;
+            case "5":
+                filterEventsByStatusFlow();
+                break;
+            case "6":
+                changeEventStatusFlow();
                 break;
             case "0":
                 break;
@@ -217,6 +282,71 @@ public class ConsoleUI {
             System.out.println("Dang ky thanh cong!");
         } catch (MemberNotFoundException | EventFullException | EventNotFoundException e) {
             System.out.println("Loi: " + e.getMessage());
+        }
+    }
+
+    private void cancelRegistrationFlow() {
+        System.out.print("Nhap ID su kien: ");
+        String eventId = scanner.nextLine().trim();
+        System.out.print("Nhap ID thanh vien can huy dang ky: ");
+        String memberId = scanner.nextLine().trim();
+
+        eventService.cancelRegistration(eventId, memberId);
+        System.out.println("Da xu ly huy dang ky (neu su kien/thanh vien ton tai).");
+    }
+
+    private void filterEventsByStatusFlow() {
+        System.out.println("Chon trang thai: 1. UPCOMING | 2. ONGOING | 3. FINISHED | 4. CANCELLED");
+        String choice = scanner.nextLine().trim();
+        EventStatus status = parseEventStatus(choice);
+        if (status == null) {
+            System.out.println("Lua chon khong hop le.");
+            return;
+        }
+
+        List<Event> filtered = eventService.listEventsByStatus(status);
+        if (filtered == null || filtered.isEmpty()) {
+            System.out.println("Khong co su kien nao o trang thai " + status + ".");
+            return;
+        }
+        for (Event e : filtered) {
+            System.out.println(e + " - Phi: " + e.calculateFee());
+        }
+    }
+
+    private void changeEventStatusFlow() {
+        System.out.print("Nhap ID su kien can cap nhat trang thai: ");
+        String eventId = scanner.nextLine().trim();
+        Event event = eventService.findEventById(eventId);
+        if (event == null) {
+            System.out.println("Loi: Khong tim thay su kien voi ID nay.");
+            return;
+        }
+
+        System.out.println("Chon trang thai moi: 1. UPCOMING | 2. ONGOING | 3. FINISHED | 4. CANCELLED");
+        String choice = scanner.nextLine().trim();
+        EventStatus status = parseEventStatus(choice);
+        if (status == null) {
+            System.out.println("Lua chon khong hop le.");
+            return;
+        }
+
+        event.setStatus(status);
+        System.out.println("Cap nhat trang thai thanh cong!");
+    }
+
+    private EventStatus parseEventStatus(String choice) {
+        switch (choice) {
+            case "1":
+                return EventStatus.UPCOMING;
+            case "2":
+                return EventStatus.ONGOING;
+            case "3":
+                return EventStatus.FINISHED;
+            case "4":
+                return EventStatus.CANCELLED;
+            default:
+                return null;
         }
     }
 
