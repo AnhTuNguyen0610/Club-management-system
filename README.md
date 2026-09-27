@@ -9,10 +9,13 @@ sự kiện do CLB tổ chức (workshop, cuộc thi, giao lưu).
 
 ## 2. Chức năng chính
 
-- Quản lý thành viên: thêm, xoá, tìm kiếm (theo ID / theo tên), cập nhật, liệt kê, sắp xếp.
-- Quản lý sự kiện: tạo sự kiện, đăng ký thành viên tham gia, huỷ đăng ký, liệt kê sự kiện theo trạng thái.
-- Mỗi loại sự kiện (Workshop, Competition, SocialEvent) có cách tính phí tham gia khác nhau.
+- Quản lý thành viên: thêm, xoá, tìm kiếm (theo ID / theo tên), cập nhật email-SĐT, liệt kê, sắp xếp theo tên.
+- Quản lý sự kiện: tạo sự kiện, đăng ký thành viên tham gia, huỷ đăng ký, liệt kê/lọc sự kiện theo trạng thái, cập nhật trạng thái sự kiện.
+- Mỗi loại sự kiện (Workshop, Competition, SocialEvent) có cách tính phí tham gia khác nhau (polymorphism).
 - Xem thông tin tổng quan của CLB.
+
+Toàn bộ chức năng trên đã được cài đặt đầy đủ và nối vào menu `ConsoleUI` — đây là bản
+demo hoàn chỉnh đầu tiên (v1) của dự án.
 
 ## 3. Kiến trúc
 
@@ -30,7 +33,7 @@ Main.java    - điểm khởi chạy chương trình
 ## 4. Cấu trúc thư mục
 
 ```text
-ClubManagement/
+Club_management_system/
 ├── src/
 │   └── clubmanagement/
 │       ├── Main.java
@@ -55,7 +58,9 @@ ClubManagement/
 │           ├── DuplicateMemberException.java
 │           ├── MemberNotFoundException.java
 │           ├── EventFullException.java
-│           └── InvalidInputException.java
+│           ├── InvalidInputException.java
+│           ├── EventNotFoundException.java
+│           └── DuplicateEventException.java
 ├── docs/
 │   ├── class-diagram.md
 │   └── task-breakdown.md
@@ -72,7 +77,7 @@ ClubManagement/
 | Abstraction | `Person` và `Event` là abstract class, chỉ định nghĩa khung chung |
 | Interface | `Payable` — mọi `Event` phải tự tính được phí tham gia |
 | Composition/Association | `ClubService` giữ tham chiếu đến `Club`, `MemberService`, `EventService`; `Event` chứa danh sách `Member` (participants) |
-| Exception handling | 4 exception tự định nghĩa (`DuplicateMemberException`, `MemberNotFoundException`, `EventFullException`, `InvalidInputException`), được throw trong service và catch trong `ConsoleUI` |
+| Exception handling | 6 exception tự định nghĩa (`DuplicateMemberException`, `MemberNotFoundException`, `EventFullException`, `InvalidInputException`, `EventNotFoundException`, `DuplicateEventException`), được throw trong service và catch trong `ConsoleUI` |
 | Collection Framework | `ArrayList<Member>`, `List<Event>` dùng để lưu trữ dữ liệu trong bộ nhớ |
 
 ## 6. Cài đặt & chạy chương trình
@@ -81,9 +86,9 @@ Yêu cầu: JDK 17 trở lên.
 
 ```bash
 # Biên dịch
-cd ClubManagement
+cd Club_management_system
 find src -name "*.java" > sources.txt
-javac -d out @sources.txt
+javac -encoding UTF-8 -d out @sources.txt
 
 # Chạy chương trình
 cd out
