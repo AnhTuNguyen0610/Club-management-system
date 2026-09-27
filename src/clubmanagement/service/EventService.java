@@ -1,7 +1,6 @@
 package clubmanagement.service;
 
 import clubmanagement.exception.EventFullException;
-import clubmanagement.exception.MemberNotFoundException;
 import clubmanagement.exception.EventNotFoundException;
 import clubmanagement.exception.DuplicateEventException;
 import clubmanagement.model.Event;

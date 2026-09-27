@@ -65,7 +65,8 @@ public abstract class Event implements Payable {
 
     @Override
     public String toString() {
-        return "Su kien: " + eventName + " (" + getEventTypeDescription() + ")"
+        return "ID: " + eventId
+                + " - Su kien: " + eventName + " (" + getEventTypeDescription() + ")"
                 + ", Ngay: " + date
                 + ", So luong: " + participants.size() + "/" + maxParticipants
                 + ", Trang thai: " + status;

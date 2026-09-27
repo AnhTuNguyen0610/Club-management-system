@@ -26,11 +26,10 @@ public class Workshop extends Event {
     }
 
     /**
-     * TODO: NHAT MINH
      * Business rule:
      * - Phi tham gia mac dinh = baseFee.
-     * - Neu so luong dang ky hien tai (participants.size()) vuot qua 80%
-     * maxParticipants thi giam 10% phi (khuyen khich dang ky som).
+     * - Neu so luong dang ky hien tai (participants.size()) chua vuot qua
+     * 20% cua maxParticipants thi giam 10% phi (khuyen khich dang ky som).
      * Input: khong co tham so, doc du lieu tu field cua chinh Workshop.
      * Output: gia tri phi (double) >= 0.
      */
@@ -38,7 +37,7 @@ public class Workshop extends Event {
     public double calculateFee() {
         double fillRate = (double) participants.size() / maxParticipants;
 
-        if (fillRate > 0.8)
+        if (fillRate <= 0.2)
             return baseFee * 0.9;
 
         return baseFee;
