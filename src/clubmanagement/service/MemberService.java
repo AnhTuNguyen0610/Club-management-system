@@ -20,20 +20,21 @@ public class MemberService {
 
     // TODO: BIEN (Giai doan 2 - Task B2.2)
     // Hien tai du lieu van luu trong List (in-memory) nen ban Console cu van chay.
-    // Khi chuyen sang database: thay MOI thao tac tren "members" bang memberRepository,
-    // roi XOA field "members". Giu nguyen chu ky (signature) cac method public va giu
+    // Khi chuyen sang database: thay MOI thao tac tren "members" bang
+    // memberRepository,
+    // roi XOA field "members". Giu nguyen chu ky (signature) cac method public va
+    // giu
     // nguyen cac business rule/exception da co.
-    private List<Member> members;
 
     private final MemberRepository memberRepository;
 
     /**
      * Anh Tu (Tech Lead) da chot constructor nay: Main truyen MemberRepository vao.
-     * Bien KHONG doi chu ky constructor (neu doi se lam Main.java khong bien dich duoc).
+     * Bien KHONG doi chu ky constructor (neu doi se lam Main.java khong bien dich
+     * duoc).
      */
     public MemberService(MemberRepository memberRepository) {
         this.memberRepository = memberRepository;
-        this.members = new ArrayList<>();
     }
 
     /**
@@ -62,15 +63,14 @@ public class MemberService {
         }
 
         // 3. Kiem tra ID da ton tai hay chua
-        for (Member m : members) {
-            if (m.getId().equalsIgnoreCase(member.getId())) {
-                throw new DuplicateMemberException(
-                        "Member ID already exists: " + member.getId());
-            }
+        // Thay cho viec duyet List members cu
+        if (memberRepository.existsById(member.getId())) {
+            throw new DuplicateMemberException(
+                    "Member ID already exists: " + member.getId());
         }
 
-        // 4. Neu hop le thi them vao danh sach
-        members.add(member);
+        // 4. Neu hop le thi luu vao database
+        memberRepository.insert(member);
     }
 
     /**
@@ -80,18 +80,14 @@ public class MemberService {
     public void removeMember(String memberId)
             throws MemberNotFoundException {
 
-        // Tim member theo ID
-        for (int i = 0; i < members.size(); i++) {
+        // Xoa truc tiep trong database
+        boolean deleted = memberRepository.deleteById(memberId);
 
-            if (members.get(i).getId().equalsIgnoreCase(memberId)) {
-                members.remove(i);
-                return;
-            }
+        // Khong xoa duoc -> khong ton tai
+        if (!deleted) {
+            throw new MemberNotFoundException(
+                    "Member not found: " + memberId);
         }
-
-        // Khong tim thay
-        throw new MemberNotFoundException(
-                "Member not found: " + memberId);
     }
 
     /**
@@ -101,15 +97,16 @@ public class MemberService {
     public Member searchMemberById(String memberId)
             throws MemberNotFoundException {
 
-        for (Member member : members) {
+        // Tim trong database
+        Member member = memberRepository.findById(memberId);
 
-            if (member.getId().equalsIgnoreCase(memberId)) {
-                return member;
-            }
+        // Khong tim thay
+        if (member == null) {
+            throw new MemberNotFoundException(
+                    "Member not found: " + memberId);
         }
 
-        throw new MemberNotFoundException(
-                "Member not found: " + memberId);
+        return member;
     }
 
     /**
@@ -120,25 +117,8 @@ public class MemberService {
      */
     public List<Member> searchMemberByName(String keyword) {
 
-        List<Member> result = new ArrayList<>();
-
-        // Neu keyword null/rong thi tra ve danh sach rong
-        if (keyword == null || keyword.trim().isEmpty()) {
-            return result;
-        }
-
-        String searchKeyword = keyword.trim().toLowerCase();
-
-        for (Member member : members) {
-
-            if (member.getName() != null
-                    && member.getName().toLowerCase().contains(searchKeyword)) {
-
-                result.add(member);
-            }
-        }
-
-        return result;
+        // Repository da xu ly viec tim kiem trong database
+        return memberRepository.searchByName(keyword);
     }
 
     /**
@@ -148,19 +128,23 @@ public class MemberService {
      */
     public List<Member> listAllMembers() {
 
-        return new ArrayList<>(members);
+        // Lay du lieu tu database
+        return memberRepository.findAll();
     }
 
     /**
      * Sap xep danh sach thanh vien theo ten A-Z.
      *
-     * Khong sap xep truc tiep members.
-     * Tao ban sao -> sap xep ban sao -> tra ve ban sao.
+     * Khong sap xep truc tiep du lieu trong database.
+     * Lay danh sach tu repository -> tao ban sao -> sap xep ban sao.
      */
     public List<Member> sortMembersByName() {
 
-        List<Member> result = new ArrayList<>(members);
+        // Lay danh sach tu database
+        List<Member> result = new ArrayList<>(
+                memberRepository.findAll());
 
+        // Sap xep A-Z, khong phan biet hoa/thuong
         result.sort(
                 Comparator.comparing(
                         Member::getName,
@@ -176,11 +160,20 @@ public class MemberService {
     public void updateMember(String memberId, String newEmail, String newPhone)
             throws MemberNotFoundException {
 
-        // Tim member
-        Member member = searchMemberById(memberId);
+        // 1. Tim member trong database
+        Member member = memberRepository.findById(memberId);
 
-        // Cap nhat email va phone
+        // 2. Khong tim thay
+        if (member == null) {
+            throw new MemberNotFoundException(
+                    "Member not found: " + memberId);
+        }
+
+        // 3. Cap nhat email va phone trong object
         member.setEmail(newEmail);
         member.setPhone(newPhone);
+
+        // 4. Ghi thay doi vao database
+        memberRepository.update(member);
     }
 }
