@@ -6,6 +6,7 @@ import clubmanagement.exception.DuplicateEventException;
 import clubmanagement.model.Event;
 import clubmanagement.model.EventStatus;
 import clubmanagement.model.Member;
+import clubmanagement.repository.EventRepository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,10 +21,36 @@ import java.util.List;
  */
 public class EventService {
 
+    // TODO: NHAT MINH (Giai doan 2 - Task N2.2)
+    // Hien tai du lieu van luu trong List (in-memory) nen ban Console cu van chay.
+    // Khi chuyen sang database: thay MOI thao tac tren "events" (va participants) bang
+    // eventRepository, roi XOA field "events". Giu nguyen chu ky cac method public va
+    // giu nguyen business rule/exception da co.
     private List<Event> events;
 
-    public EventService() {
+    private final EventRepository eventRepository;
+
+    /**
+     * Anh Tu (Tech Lead) da chot constructor nay: Main truyen EventRepository vao.
+     * Nhat Minh KHONG doi chu ky constructor (neu doi se lam Main.java khong bien dich duoc).
+     */
+    public EventService(EventRepository eventRepository) {
+        this.eventRepository = eventRepository;
         this.events = new ArrayList<>();
+    }
+
+    /**
+     * TODO: NHAT MINH (Giai doan 2 - Task N2.2) - METHOD MOI
+     * Doi trang thai mot su kien va LUU xuong database.
+     * Ly do can method nay: khi du lieu nam trong DB, findEventById() tra ve mot ban sao
+     * moi, nen goi event.setStatus(...) ben ngoai khong con duoc luu lai.
+     * Business rules:
+     *  - eventId khong ton tai -> throw EventNotFoundException.
+     *  - Cap nhat status qua eventRepository.updateStatus(...).
+     * Sau khi Nhat Minh xong, Anh Tu se doi ConsoleUI/EventPanel dung method nay.
+     */
+    public void updateEventStatus(String eventId, EventStatus status) throws EventNotFoundException {
+        throw new UnsupportedOperationException("TODO: NHAT MINH - updateEventStatus()");
     }
 
     /**

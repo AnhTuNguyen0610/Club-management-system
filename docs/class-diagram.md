@@ -52,6 +52,7 @@ classDiagram
         -double entryFee
         -double prizeValue
         +calculateFee() double
+        +calculateFee(Member) double
     }
 
     class SocialEvent {
@@ -72,8 +73,38 @@ classDiagram
         -String description
     }
 
+    class DatabaseConnection {
+        -String dbFilePath
+        +open() Connection
+        +initSchema()
+        +isConnected() bool
+    }
+
+    class MemberRepository {
+        -DatabaseConnection db
+        +insert(Member)
+        +update(Member)
+        +deleteById(String) bool
+        +findById(String) Member
+        +existsById(String) bool
+        +findAll() List~Member~
+        +searchByName(String) List~Member~
+    }
+
+    class EventRepository {
+        -DatabaseConnection db
+        +insert(Event)
+        +updateStatus(String, EventStatus) bool
+        +findById(String) Event
+        +existsById(String) bool
+        +findAll() List~Event~
+        +findByStatus(EventStatus) List~Event~
+        +addParticipant(String, String)
+        +removeParticipant(String, String)
+    }
+
     class MemberService {
-        -List~Member~ members
+        -MemberRepository memberRepository
         +addMember(Member)
         +removeMember(String)
         +searchMemberById(String) Member
@@ -84,13 +115,14 @@ classDiagram
     }
 
     class EventService {
-        -List~Event~ events
+        -EventRepository eventRepository
         +addEvent(Event)
         +registerMember(String, Member)
         +cancelRegistration(String, String)
         +listEvents() List~Event~
         +listEventsByStatus(EventStatus) List~Event~
         +findEventById(String) Event
+        +updateEventStatus(String, EventStatus)
     }
 
     class ClubService {
@@ -98,6 +130,31 @@ classDiagram
         -MemberService memberService
         -EventService eventService
         +printClubSummary()
+    }
+
+    class Refreshable {
+        <<interface>>
+        +refresh()
+    }
+
+    class MainFrame {
+        -ClubService clubService
+        +MainFrame(ClubService, DatabaseConnection)
+    }
+
+    class DashboardPanel {
+        +refresh()
+    }
+
+    class MemberPanel {
+        -MemberService memberService
+        +refresh()
+    }
+
+    class EventPanel {
+        -EventService eventService
+        -MemberService memberService
+        +refresh()
     }
 
     class ConsoleUI {
@@ -114,17 +171,31 @@ classDiagram
     Member "1" --> "1" MembershipType
     Event "1" --> "1" EventStatus
     Event "1" o-- "many" Member : participants
-    MemberService "1" o-- "many" Member
-    EventService "1" o-- "many" Event
+
+    MemberRepository "1" --> "1" DatabaseConnection
+    EventRepository "1" --> "1" DatabaseConnection
+    MemberService "1" --> "1" MemberRepository
+    EventService "1" --> "1" EventRepository
+
     ClubService "1" --> "1" Club
     ClubService "1" --> "1" MemberService
     ClubService "1" --> "1" EventService
     ConsoleUI "1" --> "1" ClubService
+
+    DashboardPanel ..|> Refreshable
+    MemberPanel ..|> Refreshable
+    EventPanel ..|> Refreshable
+    MainFrame "1" --> "1" ClubService
+    MainFrame "1" o-- "many" Refreshable : cac trang
+    MemberPanel "1" --> "1" MemberService
+    EventPanel "1" --> "1" EventService
+    EventPanel "1" --> "1" MemberService : chi doc
 ```
 
 ## Giải thích quan hệ chính
 
 - **Inheritance**: `Member` kế thừa `Person`; `Workshop`, `Competition`, `SocialEvent` kế thừa `Event`.
-- **Interface**: `Event` implement `Payable` → mỗi loại sự kiện override `calculateFee()` khác nhau (Polymorphism).
-- **Composition**: `Event` sở hữu danh sách `participants` (List&lt;Member&gt;); `MemberService`/`EventService` sở hữu danh sách đối tượng quản lý — nếu service bị huỷ thì danh sách cũng mất theo.
-- **Association**: `ClubService` giữ tham chiếu tới `Club`, `MemberService`, `EventService` để điều phối, nhưng không sở hữu vòng đời của chúng theo kiểu composition chặt.
+- **Interface**: `Event` implement `Payable` → mỗi loại sự kiện override `calculateFee()` khác nhau (Polymorphism). `DashboardPanel`/`MemberPanel`/`EventPanel` cùng implement `Refreshable` → `MainFrame` gọi `refresh()` qua interface mà không cần biết bên trong là màn hình nào (Polymorphism ở tầng giao diện).
+- **Composition**: `Event` sở hữu danh sách `participants` (List&lt;Member&gt;).
+- **Association**: `ClubService` giữ tham chiếu tới `Club`, `MemberService`, `EventService`; `Service` giữ tham chiếu tới `Repository` tương ứng (không sở hữu vòng đời chặt — `Repository` chỉ là cổng vào database, dữ liệu thật nằm ngoài chương trình).
+- **Tách tầng repository**: `Service` chỉ biết gọi method trên `Repository` (ví dụ `memberRepository.findAll()`), không biết bên trong dùng SQLite hay bất kỳ cách lưu trữ nào khác — nhờ vậy đổi công nghệ lưu trữ sau này (nếu cần) chỉ phải viết lại `Repository`, không đụng đến `Service` hay `ui`.
