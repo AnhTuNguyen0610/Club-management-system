@@ -4,6 +4,7 @@ import clubmanagement.exception.DuplicateMemberException;
 import clubmanagement.exception.InvalidInputException;
 import clubmanagement.exception.MemberNotFoundException;
 import clubmanagement.model.Member;
+import clubmanagement.repository.MemberRepository;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -17,9 +18,21 @@ import java.util.List;
  */
 public class MemberService {
 
+    // TODO: BIEN (Giai doan 2 - Task B2.2)
+    // Hien tai du lieu van luu trong List (in-memory) nen ban Console cu van chay.
+    // Khi chuyen sang database: thay MOI thao tac tren "members" bang memberRepository,
+    // roi XOA field "members". Giu nguyen chu ky (signature) cac method public va giu
+    // nguyen cac business rule/exception da co.
     private List<Member> members;
 
-    public MemberService() {
+    private final MemberRepository memberRepository;
+
+    /**
+     * Anh Tu (Tech Lead) da chot constructor nay: Main truyen MemberRepository vao.
+     * Bien KHONG doi chu ky constructor (neu doi se lam Main.java khong bien dich duoc).
+     */
+    public MemberService(MemberRepository memberRepository) {
+        this.memberRepository = memberRepository;
         this.members = new ArrayList<>();
     }
 
