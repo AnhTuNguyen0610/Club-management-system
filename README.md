@@ -23,6 +23,9 @@ cần.
 - Trang **Tổng quan**: số liệu nhanh (số thành viên, số sự kiện, số lượt đăng ký, doanh thu ước tính) + danh sách sự kiện sắp diễn ra + trạng thái kết nối database.
 - Dữ liệu lưu trong **SQLite** (file `data/club.db`, tự tạo khi chạy lần đầu).
 
+Toàn bộ chức năng trên đã được cài đặt đầy đủ và nối vào menu `ConsoleUI` — đây là bản
+demo hoàn chỉnh đầu tiên (v1) của dự án.
+
 ## 3. Kiến trúc
 
 Kiến trúc 5 tầng (thêm tầng `repository` so với bản đầu, đúng mẫu "có database"):
