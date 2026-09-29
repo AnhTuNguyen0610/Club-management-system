@@ -145,7 +145,7 @@ Dùng [DB Browser for SQLite](https://sqlitebrowser.org/) (miễn phí) mở fil
 
 | Vai trò | Phụ trách |
 |---|---|
-| Tech Lead (Anh Tú) | Kiến trúc, hạ tầng database (`repository/DatabaseConnection`), khung giao diện (`MainFrame`, `DashboardPanel`, `UiUtils`, `InputValidator`), `Main.java`, `exception`, integration, code review |
+| Anh Tú | Kiến trúc, hạ tầng database (`repository/DatabaseConnection`), khung giao diện (`MainFrame`, `DashboardPanel`, `UiUtils`, `InputValidator`), `Main.java`, `exception`, integration, code review |
 | Biên | Module Thành viên — `MemberRepository.java`, `MemberService.java`, `MemberPanel.java`, `MemberFormDialog.java` |
 | Nhật Minh | Module Sự kiện — `EventRepository.java`, `EventService.java`, `EventPanel.java`, `EventFormDialog.java`, `RegisterMemberDialog.java` |
 
@@ -154,8 +154,6 @@ Dùng [DB Browser for SQLite](https://sqlitebrowser.org/) (miễn phí) mở fil
 ```text
 main
   |
-develop
-  |
   +-- feature/bien        (Biên - module thành viên)
   |
   +-- feature/nhat-minh   (Nhật Minh - module sự kiện)
@@ -163,6 +161,5 @@ develop
 
 - Không push trực tiếp vào `main`.
 - Commit convention: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`.
-- Anh Tú (Tech Lead) là người duy nhất merge `develop` → `main`.
 - Không commit file `data/*.db` (đã có trong `.gitignore`) — mỗi máy tự sinh dữ liệu riêng.
 - Chi tiết task xem tại `docs/task-breakdown.md`, sơ đồ database xem tại `docs/database.md`.
