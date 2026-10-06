@@ -1,10 +1,24 @@
 package clubmanagement.ui;
 
+import clubmanagement.exception.DatabaseException;
+import clubmanagement.exception.DuplicateMemberException;
+import clubmanagement.exception.InvalidInputException;
+import clubmanagement.exception.MemberNotFoundException;
 import clubmanagement.model.Member;
 import clubmanagement.service.MemberService;
 
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.JTextField;
+import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.GridLayout;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -25,7 +39,7 @@ import java.util.List;
  *            Model KHONG cho sua truc tiep o (override isCellEditable -> false).
  *            Bam tieu de cot de sap xep da co san nho styleTable (thay cho nut "sap xep").
  *  - Dialog them/sua (MemberFormDialog, JDialog modal): Mã, Họ tên, Email, Số điện thoại,
- *    Loại thành viên (JComboBox&lt;MembershipType&gt;). Khi SUA: o Mã va Loai bi khoa
+ *    Loại thành viên (JComboBox<MembershipType>). Khi SUA: o Mã va Loai bi khoa
  *    (memberService.updateMember chi doi email + so dien thoai).
  *
  * ===== HANH VI =====
@@ -47,65 +61,338 @@ public class MemberPanel extends JPanel implements Refreshable {
 
     private final MemberService memberService;
 
-    // TODO: BIEN - khai bao cac component can dung: JTextField txtSearch,
-    //       JTable tblMembers, DefaultTableModel tableModel...
+    private JTextField txtSearch;
+    private JTable tblMembers;
+    private DefaultTableModel tableModel;
+
+    private JButton btnSearch;
+    private JButton btnRefresh;
+    private JButton btnAdd;
+    private JButton btnEdit;
+    private JButton btnDelete;
 
     public MemberPanel(MemberService memberService) {
         this.memberService = memberService;
+
         setLayout(new BorderLayout());
         setOpaque(false);
 
-        // TODO: BIEN - XOA dong placeholder ben duoi va thay bang bo cuc that (buildToolbar + buildTable).
-        add(UiUtils.placeholderPanel("Đang xây dựng", "Biên", "Task B3.1"), BorderLayout.CENTER);
+        add(buildToolbar(), BorderLayout.NORTH);
+        add(buildTable(), BorderLayout.CENTER);
+
+        refresh();
     }
 
     /**
-     * TODO: BIEN
-     * Duoc MainFrame goi moi khi nguoi dung mo trang nay.
-     * Lay danh sach tu memberService.listAllMembers() roi do vao bang (loadTable).
+     * Tao thanh cong cu:
+     * - Ben trai: o tim kiem + Tim + Lam moi
+     * - Ben phai: Them + Sua + Xoa
+     */
+    private JPanel buildToolbar() {
+        JPanel toolbar = UiUtils.card(new BorderLayout(10, 0));
+
+        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        leftPanel.setOpaque(false);
+
+        txtSearch = new JTextField(20);
+
+        btnSearch = UiUtils.secondaryButton("Tìm");
+        btnRefresh = UiUtils.secondaryButton("Làm mới");
+
+        leftPanel.add(new JLabel("Tìm theo tên:"));
+        leftPanel.add(txtSearch);
+        leftPanel.add(btnSearch);
+        leftPanel.add(btnRefresh);
+
+        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        rightPanel.setOpaque(false);
+
+        btnAdd = UiUtils.primaryButton("Thêm");
+        btnEdit = UiUtils.secondaryButton("Sửa");
+        btnDelete = UiUtils.dangerButton("Xóa");
+
+        rightPanel.add(btnAdd);
+        rightPanel.add(btnEdit);
+        rightPanel.add(btnDelete);
+
+        toolbar.add(leftPanel, BorderLayout.WEST);
+        toolbar.add(rightPanel, BorderLayout.EAST);
+
+        btnSearch.addActionListener(e -> onSearchClicked());
+
+        btnRefresh.addActionListener(e -> refresh());
+
+        btnAdd.addActionListener(e -> onAddClicked());
+
+        btnEdit.addActionListener(e -> onEditClicked());
+
+        btnDelete.addActionListener(e -> onDeleteClicked());
+
+        txtSearch.addActionListener(e -> onSearchClicked());
+
+        return toolbar;
+    }
+
+    /**
+     * Tao JTable hien thi danh sach thanh vien.
+     */
+    private JPanel buildTable() {
+        String[] columns = {
+                "Mã",
+                "Họ tên",
+                "Email",
+                "Số điện thoại",
+                "Loại thành viên",
+                "Ngày tham gia",
+                "Trạng thái"
+        };
+
+        tableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        tblMembers = new JTable(tableModel);
+
+        UiUtils.styleTable(tblMembers);
+
+        JScrollPane scrollPane = new JScrollPane(tblMembers);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+
+        JPanel card = UiUtils.card(new BorderLayout());
+        card.add(scrollPane, BorderLayout.CENTER);
+
+        return card;
+    }
+
+    /**
+     * MainFrame goi ham nay khi mo trang.
      */
     @Override
     public void refresh() {
-        // TODO: BIEN
+        try {
+            List<Member> members = memberService.listAllMembers();
+            loadTable(members);
+        } catch (DatabaseException e) {
+            UiUtils.showDatabaseError(this, e);
+        } catch (Exception e) {
+            UiUtils.showError(this, e.getMessage());
+        }
     }
 
     /**
-     * TODO: BIEN
-     * Xoa het hang cu trong tableModel roi them 1 hang cho moi Member.
-     * Danh sach rong -> bang trong (khong nem loi).
+     * Xoa bang cu va nap lai danh sach thanh vien.
      */
     private void loadTable(List<Member> members) {
-        // TODO: BIEN
+        tableModel.setRowCount(0);
+
+        if (members == null) {
+            return;
+        }
+
+        for (Member member : members) {
+            tableModel.addRow(new Object[]{
+                    member.getId(),
+                    member.getName(),
+                    member.getEmail(),
+                    member.getPhone(),
+                    UiUtils.membershipLabel(member.getMembershipType()),
+                    member.getJoinDate(),
+                    member.isActive() ? "Đang hoạt động" : "Ngừng hoạt động"
+            });
+        }
     }
 
     /**
-     * TODO: BIEN
-     * Tra ve Member ung voi dong dang chon, hoac null neu chua chon dong nao.
-     * Chu y: neu bang dang duoc sap xep, phai doi chi so view -> model
-     * (table.convertRowIndexToModel) hoac lay ID tu cot dau roi searchMemberById.
+     * Lay Member dang duoc chon.
+     * Do JTable co sorter nen phai convert view index -> model index.
      */
     private Member getSelectedMember() {
-        // TODO: BIEN
-        return null;
+        int viewRow = tblMembers.getSelectedRow();
+
+        if (viewRow < 0) {
+            return null;
+        }
+
+        int modelRow = tblMembers.convertRowIndexToModel(viewRow);
+
+        String memberId = tableModel.getValueAt(modelRow, 0).toString();
+
+        try {
+            return memberService.searchMemberById(memberId);
+        } catch (MemberNotFoundException e) {
+            UiUtils.showError(this, e.getMessage());
+            return null;
+        } catch (DatabaseException e) {
+            UiUtils.showDatabaseError(this, e);
+            return null;
+        }
     }
 
-    /** TODO: BIEN - Mo MemberFormDialog che do THEM; neu luu thanh cong thi goi memberService.addMember(...) va refresh. */
+    /**
+     * Mo dialog THEM.
+     */
     private void onAddClicked() {
-        // TODO: BIEN
+        MemberFormDialog dialog =
+                new MemberFormDialog(
+                        javax.swing.SwingUtilities.getWindowAncestor(this),
+                        "Thêm thành viên",
+                        null
+                );
+
+        dialog.setVisible(true);
+
+        if (!dialog.isSaved()) {
+            return;
+        }
+
+        try {
+            String id = dialog.getMemberId();
+            String name = dialog.getNameValue();
+            String email = dialog.getEmail();
+            String phone = dialog.getPhone();
+            clubmanagement.model.MembershipType membershipType =
+                    dialog.getMembershipType();
+
+            Member member = new Member(
+                    id,
+                    name,
+                    email,
+                    phone,
+                    membershipType,
+                    LocalDate.now()
+            );
+
+            memberService.addMember(member);
+
+            refresh();
+
+        } catch (DuplicateMemberException
+                 | InvalidInputException
+                 | MemberNotFoundException e) {
+
+            UiUtils.showError(this, e.getMessage());
+
+        } catch (DatabaseException e) {
+            UiUtils.showDatabaseError(this, e);
+
+        } catch (Exception e) {
+            UiUtils.showError(this, e.getMessage());
+        }
     }
 
-    /** TODO: BIEN - Mo MemberFormDialog che do SUA cho thanh vien dang chon; luu bang memberService.updateMember(...). */
+    /**
+     * Mo dialog SUA.
+     */
     private void onEditClicked() {
-        // TODO: BIEN
+        Member selectedMember = getSelectedMember();
+
+        if (selectedMember == null) {
+            UiUtils.showWarning(this, "Vui lòng chọn một thành viên.");
+            return;
+        }
+
+        MemberFormDialog dialog =
+                new MemberFormDialog(
+                        javax.swing.SwingUtilities.getWindowAncestor(this),
+                        "Sửa thành viên",
+                        selectedMember
+                );
+
+        dialog.setVisible(true);
+
+        if (!dialog.isSaved()) {
+            return;
+        }
+
+        try {
+            String email = dialog.getEmail();
+            String phone = dialog.getPhone();
+
+            memberService.updateMember(
+                    selectedMember.getId(),
+                    email,
+                    phone
+            );
+
+            refresh();
+
+        } catch (MemberNotFoundException
+                 | InvalidInputException
+                 | DuplicateMemberException e) {
+
+            UiUtils.showError(this, e.getMessage());
+
+        } catch (DatabaseException e) {
+            UiUtils.showDatabaseError(this, e);
+
+        } catch (Exception e) {
+            UiUtils.showError(this, e.getMessage());
+        }
     }
 
-    /** TODO: BIEN - Xac nhan roi memberService.removeMember(id) cho thanh vien dang chon. */
+    /**
+     * Xoa thanh vien sau khi xac nhan.
+     */
     private void onDeleteClicked() {
-        // TODO: BIEN
+        Member selectedMember = getSelectedMember();
+
+        if (selectedMember == null) {
+            UiUtils.showWarning(this, "Vui lòng chọn một thành viên.");
+            return;
+        }
+
+        boolean confirmed = UiUtils.confirm(
+                this,
+                "Bạn có chắc muốn xóa thành viên \""
+                        + selectedMember.getName()
+                        + "\" (" + selectedMember.getId() + ")?"
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            memberService.removeMember(selectedMember.getId());
+
+            refresh();
+
+        } catch (MemberNotFoundException e) {
+            UiUtils.showError(this, e.getMessage());
+
+        } catch (DatabaseException e) {
+            UiUtils.showDatabaseError(this, e);
+
+        } catch (Exception e) {
+            UiUtils.showError(this, e.getMessage());
+        }
     }
 
-    /** TODO: BIEN - Doc o tim kiem; rong -> hien tat ca; nguoc lai memberService.searchMemberByName(keyword). */
+    /**
+     * Tim theo ten.
+     * Rong -> hien tat ca.
+     */
     private void onSearchClicked() {
-        // TODO: BIEN
+        String keyword = txtSearch.getText().trim();
+
+        try {
+            if (keyword.isEmpty()) {
+                refresh();
+            } else {
+                List<Member> members =
+                        memberService.searchMemberByName(keyword);
+
+                loadTable(members);
+            }
+
+        } catch (DatabaseException e) {
+            UiUtils.showDatabaseError(this, e);
+
+        } catch (Exception e) {
+            UiUtils.showError(this, e.getMessage());
+        }
     }
 }
