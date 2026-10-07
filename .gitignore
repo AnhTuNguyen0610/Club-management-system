@@ -1,6 +1,14 @@
+# Build
 out/
 *.class
 sources.txt
+
+# IDE (chi giu .vscode/settings.json de ca nhom dung chung cau hinh thu vien)
 .idea/
 *.iml
-.vscode/
+.vscode/*
+!.vscode/settings.json
+
+# Database SQLite sinh ra khi chay (moi may tu tao, khong commit)
+data/*.db
+data/*.db-journal
