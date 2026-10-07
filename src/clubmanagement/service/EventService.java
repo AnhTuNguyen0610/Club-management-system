@@ -23,34 +23,39 @@ public class EventService {
 
     // TODO: NHAT MINH (Giai doan 2 - Task N2.2)
     // Hien tai du lieu van luu trong List (in-memory) nen ban Console cu van chay.
-    // Khi chuyen sang database: thay MOI thao tac tren "events" (va participants) bang
-    // eventRepository, roi XOA field "events". Giu nguyen chu ky cac method public va
+    // Khi chuyen sang database: thay MOI thao tac tren "events" (va participants)
+    // bang
+    // eventRepository, roi XOA field "events". Giu nguyen chu ky cac method public
+    // va
     // giu nguyen business rule/exception da co.
-    private List<Event> events;
 
     private final EventRepository eventRepository;
 
     /**
      * Anh Tu (Tech Lead) da chot constructor nay: Main truyen EventRepository vao.
-     * Nhat Minh KHONG doi chu ky constructor (neu doi se lam Main.java khong bien dich duoc).
+     * Nhat Minh KHONG doi chu ky constructor (neu doi se lam Main.java khong bien
+     * dich duoc).
      */
     public EventService(EventRepository eventRepository) {
         this.eventRepository = eventRepository;
-        this.events = new ArrayList<>();
     }
 
     /**
      * TODO: NHAT MINH (Giai doan 2 - Task N2.2) - METHOD MOI
      * Doi trang thai mot su kien va LUU xuong database.
-     * Ly do can method nay: khi du lieu nam trong DB, findEventById() tra ve mot ban sao
+     * Ly do can method nay: khi du lieu nam trong DB, findEventById() tra ve mot
+     * ban sao
      * moi, nen goi event.setStatus(...) ben ngoai khong con duoc luu lai.
      * Business rules:
-     *  - eventId khong ton tai -> throw EventNotFoundException.
-     *  - Cap nhat status qua eventRepository.updateStatus(...).
+     * - eventId khong ton tai -> throw EventNotFoundException.
+     * - Cap nhat status qua eventRepository.updateStatus(...).
      * Sau khi Nhat Minh xong, Anh Tu se doi ConsoleUI/EventPanel dung method nay.
      */
     public void updateEventStatus(String eventId, EventStatus status) throws EventNotFoundException {
-        throw new UnsupportedOperationException("TODO: NHAT MINH - updateEventStatus()");
+        boolean updated = eventRepository.updateStatus(eventId, status);
+        if (!updated) {
+            throw new EventNotFoundException("Event " + eventId + " khong ton tai!");
+        }
     }
 
     /**
@@ -62,11 +67,10 @@ public class EventService {
      * - Nguoc lai them event vao danh sach.
      */
     public void addEvent(Event event) throws DuplicateEventException {
-        if (findEventById(event.getEventId()) != null) {
+        if (eventRepository.existsById(event.getEventId())) {
             throw new DuplicateEventException("Event " + event.getEventName() + " da ton tai!");
         }
-
-        events.add(event);
+        eventRepository.insert(event);
     }
 
     /**
@@ -79,7 +83,7 @@ public class EventService {
      * - Nguoc lai them member vao participants cua event.
      */
     public void registerMember(String eventId, Member member) throws EventFullException, EventNotFoundException {
-        Event event = findEventById(eventId);
+        Event event = eventRepository.findById(eventId);
 
         if (event == null)
             throw new EventNotFoundException("Event khong ton tai!");
@@ -89,14 +93,15 @@ public class EventService {
 
         boolean isExist = false;
         for (Member m : event.getParticipants()) {
-            if (m.getId().equals(member.getId())) {
+            if (m.getId().equalsIgnoreCase(member.getId())) {
                 isExist = true;
                 break;
             }
         }
 
-        if (!isExist)
-            event.getParticipants().add(member);
+        if (!isExist) {
+            eventRepository.addParticipant(eventId, member.getId());
+        }
     }
 
     /**
@@ -104,11 +109,7 @@ public class EventService {
      * Neu event hoac member khong ton tai trong danh sach -> bo qua (khong throw).
      */
     public void cancelRegistration(String eventId, String memberId) {
-        Event event = findEventById(eventId);
-
-        if (event != null) {
-            event.getParticipants().removeIf(m -> m.getId().equals(memberId));
-        }
+        eventRepository.removeParticipant(eventId, memberId);
     }
 
     /**
@@ -116,31 +117,20 @@ public class EventService {
      * encapsulation).
      */
     public List<Event> listEvents() {
-        return new ArrayList<>(events);
+        return eventRepository.findAll();
     }
 
     /**
      * Loc danh sach su kien theo trang thai (status).
      */
     public List<Event> listEventsByStatus(EventStatus status) {
-        List<Event> filteredEvent = new ArrayList<>();
-
-        for (Event event : events) {
-            if (event.getStatus() == status)
-                filteredEvent.add(event);
-        }
-
-        return filteredEvent;
+        return eventRepository.findByStatus(status);
     }
 
     /**
      * Tim kiem su kien theo id, tra ve null neu khong tim thay.
      */
     public Event findEventById(String eventId) {
-        for (Event event : events) {
-            if (event.getEventId().equalsIgnoreCase(eventId))
-                return event;
-        }
-        return null;
+        return eventRepository.findById(eventId);
     }
 }
