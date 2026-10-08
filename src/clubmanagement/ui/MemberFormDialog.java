@@ -1,5 +1,6 @@
 package clubmanagement.ui;
 
+import clubmanagement.util.InputValidator;
 import clubmanagement.exception.InvalidInputException;
 import clubmanagement.model.Member;
 import clubmanagement.model.MembershipType;
@@ -9,6 +10,7 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
+import javax.swing.JPanel;
 import javax.swing.JTextField;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
@@ -24,7 +26,6 @@ import java.time.LocalDate;
  * - Them: nhap day du thong tin.
  * - Sua: chi cho sua Email va So dien thoai.
  *
- * MODULE: BIEN
  */
 public class MemberFormDialog extends JDialog {
 

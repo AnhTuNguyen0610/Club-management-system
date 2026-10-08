@@ -202,7 +202,7 @@ public class ConsoleUI {
         try {
             memberService.updateMember(id, email, phone);
             System.out.println("Cap nhat thanh cong!");
-        } catch (MemberNotFoundException e) {
+        } catch (MemberNotFoundException | InvalidInputException e) {
             System.out.println("Loi: " + e.getMessage());
         }
     }
@@ -278,9 +278,13 @@ public class ConsoleUI {
 
         try {
             Member member = memberService.searchMemberById(memberId);
-            eventService.registerMember(eventId, member);
-            System.out.println("Dang ky thanh cong!");
-        } catch (MemberNotFoundException | EventFullException | EventNotFoundException e) {
+            if (eventService.registerMember(eventId, member)) {
+                System.out.println("Dang ky thanh cong!");
+            } else {
+                System.out.println("Thanh vien da dang ky su kien nay roi.");
+            }
+        } catch (MemberNotFoundException | EventFullException | EventNotFoundException
+                | InvalidInputException e) {
             System.out.println("Loi: " + e.getMessage());
         }
     }
@@ -291,8 +295,11 @@ public class ConsoleUI {
         System.out.print("Nhap ID thanh vien can huy dang ky: ");
         String memberId = scanner.nextLine().trim();
 
-        eventService.cancelRegistration(eventId, memberId);
-        System.out.println("Da xu ly huy dang ky (neu su kien/thanh vien ton tai).");
+        if (eventService.cancelRegistration(eventId, memberId)) {
+            System.out.println("Da huy dang ky.");
+        } else {
+            System.out.println("Thanh vien khong co trong danh sach dang ky cua su kien nay.");
+        }
     }
 
     private void filterEventsByStatusFlow() {
@@ -406,7 +413,7 @@ public class ConsoleUI {
             eventService.addEvent(event);
             System.out.println("Them su kien thanh cong!");
 
-        } catch (DuplicateEventException e) {
+        } catch (DuplicateEventException | InvalidInputException e) {
             System.out.println("Loi: " + e.getMessage());
         } catch (NumberFormatException e) {
             System.out.println("Loi: Vui long nhap dung dinh dang so cho tien/phi!");

@@ -1,136 +1,128 @@
 package clubmanagement.service;
 
+import clubmanagement.exception.DuplicateEventException;
 import clubmanagement.exception.EventFullException;
 import clubmanagement.exception.EventNotFoundException;
-import clubmanagement.exception.DuplicateEventException;
+import clubmanagement.exception.InvalidInputException;
+import clubmanagement.exception.MemberNotFoundException;
 import clubmanagement.model.Event;
 import clubmanagement.model.EventStatus;
 import clubmanagement.model.Member;
 import clubmanagement.repository.EventRepository;
+import clubmanagement.util.InputValidator;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Quan ly toan bo nghiep vu lien quan den Event: tao su kien, dang ky
- * thanh vien, huy dang ky, liet ke su kien.
- *
- * MODULE: NHAT MINH
- * Chi duoc sua trong file nay va Event/Workshop/Competition/SocialEvent.java.
- * Khong sua cac file thuoc module cua Bien (Member) de tranh git conflict.
+ * Nghiep vu cua Event: tao su kien, doi trang thai, dang ky / huy dang ky,
+ * liet ke va tim kiem. Moi quy tac (suc chua, trung lap, trang thai) nam o day;
+ * EventRepository chi doc/ghi database.
  */
 public class EventService {
 
-    // TODO: NHAT MINH (Giai doan 2 - Task N2.2)
-    // Hien tai du lieu van luu trong List (in-memory) nen ban Console cu van chay.
-    // Khi chuyen sang database: thay MOI thao tac tren "events" (va participants)
-    // bang
-    // eventRepository, roi XOA field "events". Giu nguyen chu ky cac method public
-    // va
-    // giu nguyen business rule/exception da co.
-
     private final EventRepository eventRepository;
 
-    /**
-     * Anh Tu (Tech Lead) da chot constructor nay: Main truyen EventRepository vao.
-     * Nhat Minh KHONG doi chu ky constructor (neu doi se lam Main.java khong bien
-     * dich duoc).
-     */
     public EventService(EventRepository eventRepository) {
         this.eventRepository = eventRepository;
     }
 
     /**
-     * TODO: NHAT MINH (Giai doan 2 - Task N2.2) - METHOD MOI
-     * Doi trang thai mot su kien va LUU xuong database.
-     * Ly do can method nay: khi du lieu nam trong DB, findEventById() tra ve mot
-     * ban sao
-     * moi, nen goi event.setStatus(...) ben ngoai khong con duoc luu lai.
-     * Business rules:
-     * - eventId khong ton tai -> throw EventNotFoundException.
-     * - Cap nhat status qua eventRepository.updateStatus(...).
-     * Sau khi Nhat Minh xong, Anh Tu se doi ConsoleUI/EventPanel dung method nay.
+     * Them su kien moi.
+     * - event null, ma/ten rong, ngay sai dinh dang dd/MM/yyyy, suc chua <= 0
+     *   -> InvalidInputException.
+     * - Ma da ton tai (khong phan biet hoa/thuong) -> DuplicateEventException.
      */
-    public void updateEventStatus(String eventId, EventStatus status) throws EventNotFoundException {
-        boolean updated = eventRepository.updateStatus(eventId, status);
-        if (!updated) {
-            throw new EventNotFoundException("Event " + eventId + " khong ton tai!");
+    public void addEvent(Event event) throws DuplicateEventException, InvalidInputException {
+        if (event == null) {
+            throw new InvalidInputException("Thông tin sự kiện không được để trống.");
         }
-    }
-
-    /**
-     * Them mot su kien moi vao he thong.
-     * Business rules:
-     * - Neu eventId da ton tai trong danh sach -> khong them, co the
-     * in canh bao hoac throw exception phu hop (co the tu tao them
-     * DuplicateEventException tuong tu DuplicateMemberException neu can).
-     * - Nguoc lai them event vao danh sach.
-     */
-    public void addEvent(Event event) throws DuplicateEventException {
+        InputValidator.requireNotBlank("Mã sự kiện", event.getEventId());
+        InputValidator.requireNotBlank("Tên sự kiện", event.getEventName());
+        InputValidator.requireDate("Ngày tổ chức", event.getDate());
+        if (event.getMaxParticipants() <= 0) {
+            throw new InvalidInputException("Số người tối đa phải lớn hơn 0.");
+        }
         if (eventRepository.existsById(event.getEventId())) {
-            throw new DuplicateEventException("Event " + event.getEventName() + " da ton tai!");
+            throw new DuplicateEventException(
+                    "Mã sự kiện \"" + event.getEventId() + "\" đã tồn tại.");
         }
         eventRepository.insert(event);
     }
 
+    /** Doi trang thai su kien. Ma khong ton tai -> EventNotFoundException. */
+    public void updateEventStatus(String eventId, EventStatus status)
+            throws EventNotFoundException, InvalidInputException {
+        if (status == null) {
+            throw new InvalidInputException("Trạng thái không được để trống.");
+        }
+        boolean updated = eventRepository.updateStatus(eventId, status);
+        if (!updated) {
+            throw new EventNotFoundException("Không tìm thấy sự kiện có mã: " + eventId);
+        }
+    }
+
     /**
-     * Dang ky mot thanh vien tham gia su kien.
-     * Business rules:
-     * - Tim event theo eventId; neu khong ton tai -> throw MemberNotFoundException
-     * (hoac tao rieng EventNotFoundException neu nhom muon ro rang hon).
-     * - Neu participants.size() >= maxParticipants -> throw EventFullException.
-     * - Neu member da co trong danh sach participants -> khong them trung.
-     * - Nguoc lai them member vao participants cua event.
+     * Dang ky thanh vien vao su kien.
+     * Thu tu kiem tra: su kien ton tai -> dang UPCOMING -> thanh vien ton tai ->
+     * da dang ky chua -> con cho khong.
+     *
+     * @return true neu dang ky moi thanh cong, false neu thanh vien da dang ky tu truoc
+     *         (khong them trung).
      */
-    public void registerMember(String eventId, Member member) throws EventFullException, EventNotFoundException {
+    public boolean registerMember(String eventId, Member member)
+            throws EventNotFoundException, EventFullException,
+            MemberNotFoundException, InvalidInputException {
+        if (member == null) {
+            throw new InvalidInputException("Chưa chọn thành viên để đăng ký.");
+        }
         Event event = eventRepository.findById(eventId);
-
-        if (event == null)
-            throw new EventNotFoundException("Event khong ton tai!");
-
-        if (event.getParticipants().size() >= event.getMaxParticipants())
-            throw new EventFullException("Event da dat so luong nguoi dang ki toi da, khong the dang ki them!");
-
-        boolean isExist = false;
-        for (Member m : event.getParticipants()) {
-            if (m.getId().equalsIgnoreCase(member.getId())) {
-                isExist = true;
-                break;
-            }
+        if (event == null) {
+            throw new EventNotFoundException("Không tìm thấy sự kiện có mã: " + eventId);
         }
-
-        if (!isExist) {
-            eventRepository.addParticipant(eventId, member.getId());
+        if (event.getStatus() != EventStatus.UPCOMING) {
+            throw new InvalidInputException("Chỉ có thể đăng ký vào sự kiện đang ở trạng thái \"Sắp diễn ra\".");
         }
+        if (!eventRepository.memberExists(member.getId())) {
+            throw new MemberNotFoundException("Không tìm thấy thành viên có mã: " + member.getId());
+        }
+        if (event.hasParticipant(member.getId())) {
+            return false;
+        }
+        if (event.isFull()) {
+            throw new EventFullException("Sự kiện đã đủ số lượng người đăng ký tối đa ("
+                    + event.getMaxParticipants() + "), không thể đăng ký thêm.");
+        }
+        eventRepository.addParticipant(event.getEventId(), member.getId());
+        return true;
     }
 
     /**
-     * Huy dang ky cua mot thanh vien khoi su kien.
-     * Neu event hoac member khong ton tai trong danh sach -> bo qua (khong throw).
+     * Huy dang ky.
+     *
+     * @return true neu da huy, false neu thanh vien vua khong dang ky su kien do.
      */
-    public void cancelRegistration(String eventId, String memberId) {
-        eventRepository.removeParticipant(eventId, memberId);
+    public boolean cancelRegistration(String eventId, String memberId) {
+        return eventRepository.removeParticipant(eventId, memberId);
     }
 
-    /**
-     * Tra ve danh sach toan bo su kien (nen tra ve ban sao de bao ve
-     * encapsulation).
-     */
+    /** Toan bo su kien (moi lan goi tra ve danh sach moi doc tu database). */
     public List<Event> listEvents() {
         return eventRepository.findAll();
     }
 
-    /**
-     * Loc danh sach su kien theo trang thai (status).
-     */
+    /** Loc theo trang thai; status null -> tat ca. */
     public List<Event> listEventsByStatus(EventStatus status) {
+        if (status == null) {
+            return eventRepository.findAll();
+        }
         return eventRepository.findByStatus(status);
     }
 
-    /**
-     * Tim kiem su kien theo id, tra ve null neu khong tim thay.
-     */
+    /** Tim theo ma; tra ve null neu khong co. */
     public Event findEventById(String eventId) {
-        return eventRepository.findById(eventId);
+        if (eventId == null) {
+            return null;
+        }
+        return eventRepository.findById(eventId.trim());
     }
 }

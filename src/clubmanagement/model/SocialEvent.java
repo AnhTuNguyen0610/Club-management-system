@@ -2,12 +2,10 @@ package clubmanagement.model;
 
 /**
  * Su kien giao luu / sinh hoat CLB (thong thuong mien phi).
- *
- * MODULE: NHAT MINH
  */
 public class SocialEvent extends Event {
 
-    private String location;
+    private final String location;
 
     public SocialEvent(String eventId, String eventName, String date, int maxParticipants,
             String location) {

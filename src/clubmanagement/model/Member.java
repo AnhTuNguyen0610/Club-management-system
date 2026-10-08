@@ -4,12 +4,7 @@ import java.time.LocalDate;
 
 /**
  * Dai dien cho mot thanh vien cua CLB.
- * Ke thua Person (Inheritance).
- *
- * MODULE: BIEN
- * Cac field/getter/setter co ban da duoc dung san (skeleton).
- * Logic nghiep vu (validate, tim kiem, sap xep...) se duoc cai dat
- * trong MemberService, khong sua truc tiep trong class nay tru khi can thiet.
+ * Ke thua Person (Inheritance); them loai thanh vien, ngay tham gia, trang thai.
  */
 public class Member extends Person {
 

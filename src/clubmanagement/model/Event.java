@@ -1,15 +1,16 @@
 package clubmanagement.model;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 
 /**
  * Lop truu tuong dai dien cho mot su kien cua CLB.
  * Implement Payable -> moi loai su kien phai tu tinh phi rieng (Polymorphism).
- *
- * Cac field/constructor/getter dung chung da duoc dung san boi Tech Lead (Anh Tu).
- * Logic tinh phi (calculateFee) thuoc MODULE: NHAT MINH, cai dat trong
- * cac lop con Workshop / Competition / SocialEvent.
+ * Danh sach nguoi tham gia duoc bao ve (Encapsulation): ben ngoai chi doc duoc,
+ * muon them phai goi addParticipant().
  */
 public abstract class Event implements Payable {
 
@@ -17,7 +18,7 @@ public abstract class Event implements Payable {
     protected String eventName;
     protected String date;
     protected int maxParticipants;
-    protected List<Member> participants;
+    protected final List<Member> participants;
     protected EventStatus status;
 
     public Event(String eventId, String eventName, String date, int maxParticipants) {
@@ -45,8 +46,30 @@ public abstract class Event implements Payable {
         return maxParticipants;
     }
 
+    /** Tra ve danh sach CHI DOC cac thanh vien da dang ky. */
     public List<Member> getParticipants() {
-        return participants;
+        return Collections.unmodifiableList(participants);
+    }
+
+    public void addParticipant(Member member) {
+        participants.add(member);
+    }
+
+    public int getParticipantCount() {
+        return participants.size();
+    }
+
+    public boolean isFull() {
+        return participants.size() >= maxParticipants;
+    }
+
+    public boolean hasParticipant(String memberId) {
+        for (Member m : participants) {
+            if (m.getId().equalsIgnoreCase(memberId)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public EventStatus getStatus() {
@@ -62,6 +85,23 @@ public abstract class Event implements Payable {
      * The hien Abstraction + Polymorphism.
      */
     public abstract String getEventTypeDescription();
+
+    /** Hai su kien la mot neu cung ma (khong phan biet hoa/thuong). */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof Event)) {
+            return false;
+        }
+        return eventId != null && eventId.equalsIgnoreCase(((Event) o).eventId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(eventId == null ? null : eventId.toLowerCase(Locale.ROOT));
+    }
 
     @Override
     public String toString() {

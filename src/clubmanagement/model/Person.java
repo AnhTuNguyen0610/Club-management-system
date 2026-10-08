@@ -1,5 +1,8 @@
 package clubmanagement.model;
 
+import java.util.Locale;
+import java.util.Objects;
+
 /**
  * Lop truu tuong (abstract) dai dien cho mot con nguoi trong he thong.
  * The hien Encapsulation (field private/protected + getter/setter)
@@ -60,5 +63,22 @@ public abstract class Person {
     @Override
     public String toString() {
         return "ID: " + id + ", Ten: " + name + ", Email: " + email + ", SDT: " + phone;
+    }
+
+    /** Hai nguoi la mot neu cung ma (khong phan biet hoa/thuong). */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof Person)) {
+            return false;
+        }
+        return id != null && id.equalsIgnoreCase(((Person) o).id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id == null ? null : id.toLowerCase(Locale.ROOT));
     }
 }

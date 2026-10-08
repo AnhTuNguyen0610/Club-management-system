@@ -2,13 +2,11 @@ package clubmanagement.model;
 
 /**
  * Su kien dang Cuoc thi (co le phi dang ky va giai thuong).
- *
- * MODULE: NHAT MINH
  */
 public class Competition extends Event {
 
-    private double entryFee;
-    private double prizeValue;
+    private final double entryFee;
+    private final double prizeValue;
 
     public Competition(String eventId, String eventName, String date, int maxParticipants,
             double entryFee, double prizeValue) {

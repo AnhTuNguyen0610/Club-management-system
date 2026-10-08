@@ -50,7 +50,7 @@ public final class UiUtils {
     public static final Color SUCCESS = new Color(0x16A34A);
     public static final Color WARNING = new Color(0xD97706);
 
-    private static final NumberFormat MONEY_FORMAT = NumberFormat.getInstance(new Locale("vi", "VN"));
+    private static final NumberFormat MONEY_FORMAT = NumberFormat.getInstance(new Locale.Builder().setLanguage("vi").setRegion("VN").build());
 
     private UiUtils() {
         // lop tien ich, khong tao doi tuong
@@ -163,25 +163,6 @@ public final class UiUtils {
         RoundedPanel p = new RoundedPanel(layout, 16);
         p.setBorder(BorderFactory.createEmptyBorder(16, 18, 16, 18));
         return p;
-    }
-
-    /**
-     * Man hinh giu cho: dung tam thoi trong MemberPanel/EventPanel cho den khi
-     * Bien/Nhat Minh lam xong. Khi lam xong thi XOA loi goi ham nay.
-     */
-    public static JPanel placeholderPanel(String heading, String owner, String taskCode) {
-        RoundedPanel box = card(new BorderLayout(0, 8));
-        box.add(sectionTitle(heading), BorderLayout.NORTH);
-        JLabel note = muted("<html>Màn hình này đang chờ <b>" + owner + "</b> hoàn thiện (" + taskCode
-                + ").<br>Xem hướng dẫn chi tiết trong docs/task-breakdown.md.</html>");
-        note.setHorizontalAlignment(SwingConstants.LEFT);
-        box.add(note, BorderLayout.CENTER);
-
-        JPanel wrapper = new JPanel(new BorderLayout());
-        wrapper.setOpaque(false);
-        wrapper.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
-        wrapper.add(box, BorderLayout.NORTH);
-        return wrapper;
     }
 
     // ---------- Hop thoai ----------

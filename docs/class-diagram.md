@@ -37,8 +37,10 @@ classDiagram
         #String eventName
         #String date
         #int maxParticipants
-        #List~Member~ participants
+        #List~Member~ participants (chi doc ben ngoai)
         #EventStatus status
+        +addParticipant(Member)
+        +isFull() boolean
         +getEventTypeDescription() String
     }
 
@@ -100,7 +102,8 @@ classDiagram
         +findAll() List~Event~
         +findByStatus(EventStatus) List~Event~
         +addParticipant(String, String)
-        +removeParticipant(String, String)
+        +removeParticipant(String, String) bool
+        +memberExists(String) bool
     }
 
     class MemberService {
@@ -111,14 +114,14 @@ classDiagram
         +searchMemberByName(String) List~Member~
         +listAllMembers() List~Member~
         +sortMembersByName() List~Member~
-        +updateMember(String, String, String)
+        +updateMember(String, String, String)  ~InvalidInputException~
     }
 
     class EventService {
         -EventRepository eventRepository
         +addEvent(Event)
-        +registerMember(String, Member)
-        +cancelRegistration(String, String)
+        +registerMember(String, Member) bool
+        +cancelRegistration(String, String) bool
         +listEvents() List~Event~
         +listEventsByStatus(EventStatus) List~Event~
         +findEventById(String) Event

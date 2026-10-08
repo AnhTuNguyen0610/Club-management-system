@@ -86,9 +86,9 @@ Sau khi tạo đối tượng phải gọi `event.setStatus(...)` để gán đ�
 
 | Cột | Ghi chú |
 |---|---|
-| `event_id` | khóa ngoại → `events(event_id)`, `ON DELETE CASCADE` |
-| `member_id` | khóa ngoại → `members(id)`, `ON DELETE CASCADE` |
-| (`event_id`, `member_id`) | khóa chính kép → **không thể đăng ký trùng** cùng một người vào cùng một sự kiện |
+| `event_id` | khóa ngoại → `events(event_id)`, `ON DELETE CASCADE`, `COLLATE NOCASE` |
+| `member_id` | khóa ngoại → `members(id)`, `ON DELETE CASCADE`, `COLLATE NOCASE` |
+| (`event_id`, `member_id`) | khóa chính kép → **không thể đăng ký trùng** cùng một người vào cùng một sự kiện (kể cả khác hoa/thường nhờ `NOCASE`) |
 
 `ON DELETE CASCADE`: xóa một thành viên thì các dòng đăng ký của họ tự biến mất, không cần code xóa tay.
 

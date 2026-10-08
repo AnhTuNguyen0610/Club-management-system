@@ -2,13 +2,15 @@ package clubmanagement.model;
 
 /**
  * Su kien dang Workshop / Hoi thao chuyen de.
- *
- * MODULE: NHAT MINH
  */
 public class Workshop extends Event {
 
-    private double baseFee;
-    private String speaker;
+    /** Con trong 20% suat dau tien thi duoc giam 10% (early bird). */
+    private static final double EARLY_BIRD_FILL_RATE = 0.2;
+    private static final double EARLY_BIRD_DISCOUNT = 0.1;
+
+    private final double baseFee;
+    private final String speaker;
 
     public Workshop(String eventId, String eventName, String date, int maxParticipants,
             double baseFee, String speaker) {
@@ -35,11 +37,13 @@ public class Workshop extends Event {
      */
     @Override
     public double calculateFee() {
+        if (maxParticipants <= 0) {
+            return baseFee;
+        }
         double fillRate = (double) participants.size() / maxParticipants;
-
-        if (fillRate <= 0.2)
-            return baseFee * 0.9;
-
+        if (fillRate <= EARLY_BIRD_FILL_RATE) {
+            return baseFee * (1 - EARLY_BIRD_DISCOUNT);
+        }
         return baseFee;
     }
 

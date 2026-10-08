@@ -1,6 +1,9 @@
 package clubmanagement.ui;
 
+import clubmanagement.util.InputValidator;
 import clubmanagement.exception.DatabaseException;
+import clubmanagement.exception.EventNotFoundException;
+import clubmanagement.exception.InvalidInputException;
 import clubmanagement.model.Event;
 import clubmanagement.model.EventStatus;
 import clubmanagement.model.Member;
@@ -16,59 +19,10 @@ import java.util.List;
 /**
  * Man hinh QUAN LY SU KIEN (Swing).
  *
- * MODULE: NHAT MINH (Giai doan 3 - Task N3.1)
- * Anh Tu da gan san man hinh nay vao MainFrame (constructor nay do Anh Tu chot,
- * KHONG doi tham so). Nhat Minh chi lam ben trong file nay + tao them cac file
- * MOI
- * EventFormDialog.java, RegisterMemberDialog.java (khong dung cham file cua
- * nguoi khac).
- * Can danh sach thanh vien de chon dang ky -> dung
- * memberService.listAllMembers()
- * (chi DOC, dung sua MemberService).
- *
- * ===== YEU CAU GIAO DIEN =====
- * Bo cuc BorderLayout trong the trang bo goc (UiUtils.card(...)):
- * - NORTH : thanh cong cu = JComboBox loc trang thai ("Tất cả" + 4 trang thai,
- * hien bang
- * UiUtils.statusLabel) + nut "Làm mới" o ben trai; cac nut "Thêm sự kiện"
- * (primaryButton), "Đăng ký thành viên", "Hủy đăng ký" (secondaryButton),
- * "Đổi trạng thái" (secondaryButton) o ben phai.
- * - CENTER: JSplitPane doc (chia tren/duoi):
- * + tren : bang su kien, cot: Mã | Tên sự kiện | Loại | Ngày | Đã đăng ký (x/y)
- * | Phí hiện tại | Trạng thái
- * + duoi : bang nguoi tham gia cua su kien dang chon, cot: Mã TV | Họ tên |
- * Email | Loại thành viên
- * Ca hai bang goi UiUtils.styleTable(...) va KHONG cho sua truc tiep o.
- * Chon 1 dong o bang tren -> bang duoi hien danh sach event.getParticipants().
- * - EventFormDialog (JDialog modal) them su kien: Mã, Tên, Ngày (dd/MM/yyyy),
- * Số lượng tối đa,
- * Loại (JComboBox: Workshop / Cuộc thi / Giao lưu). Chon loai nao thi hien dung
- * cac o rieng:
- * Workshop: Phí cơ bản + Diễn giả | Cuộc thi: Phí tham gia + Giá trị giải
- * thưởng | Giao lưu: Địa điểm.
- *
- * ===== HANH VI =====
- * - Kiem tra form bang InputValidator (requireNotBlank, requireDate,
- * parsePositiveInt,
- * parseNonNegativeDouble). Sai -> UiUtils.showWarning(this, e.getMessage()).
- * - Tao doi tuong dung lop con (new Workshop/Competition/SocialEvent) roi
- * eventService.addEvent(...).
- * - Bat DuplicateEventException / EventFullException / EventNotFoundException /
- * MemberNotFoundException
- * -> UiUtils.showError; bat DatabaseException -> UiUtils.showDatabaseError.
- * - Doi trang thai: hop thoai chon 1 trong 4 trang thai ->
- * eventService.updateEventStatus(...) (method MOI, xem Task N2.2).
- * - Nhan Huy dang ky: chon nguoi trong bang duoi roi UiUtils.confirm ->
- * eventService.cancelRegistration(...).
- *
- * ===== TIEU CHI NGHIEM THU =====
- * 1. Tao du 3 loai su kien; cot "Phí hiện tại" hien dung gia moi loai (Workshop
- * som &lt;= 20% cho -> giam 10%).
- * 2. Dang ky den khi day cho -> lan tiep theo hien hop thoai loi
- * (EventFullException), khong crash.
- * 3. Loc theo trang thai dung; doi trang thai xong bang cap nhat va van con sau
- * khi khoi dong lai.
- * 4. Khong co System.out.println trong file nay; moi loi bao qua hop thoai.
+ * - Tren: thanh cong cu (loc theo trang thai, them su kien, dang ky, huy dang ky,
+ *   doi trang thai) + bang danh sach su kien. Nhap dup chuot vao 1 su kien de xem chi tiet.
+ * - Duoi: bang nguoi tham gia cua su kien dang chon.
+ * Man hinh chi goi EventService / MemberService, khong chua nghiep vu.
  */
 public class EventPanel extends JPanel implements Refreshable {
 
@@ -80,6 +34,10 @@ public class EventPanel extends JPanel implements Refreshable {
     private DefaultTableModel eventTableModel;
     private JTable tblParticipants;
     private DefaultTableModel participantTableModel;
+    private JLabel lblParticipants;
+    private boolean loading = false;
+
+    private static final EventStatus[] FILTER_STATUSES = EventStatus.values();
 
     public EventPanel(EventService eventService, MemberService memberService) {
         this.eventService = eventService;
@@ -92,7 +50,12 @@ public class EventPanel extends JPanel implements Refreshable {
 
         JPanel leftToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT));
         leftToolbar.setOpaque(false);
-        cbStatusFilter = new JComboBox<>(new String[] { "Tất cả", "UPCOMING", "ONGOING", "FINISHED", "CANCELLED" });
+        String[] filterLabels = new String[FILTER_STATUSES.length + 1];
+        filterLabels[0] = "Tất cả";
+        for (int i = 0; i < FILTER_STATUSES.length; i++) {
+            filterLabels[i + 1] = UiUtils.statusLabel(FILTER_STATUSES[i]);
+        }
+        cbStatusFilter = new JComboBox<>(filterLabels);
         cbStatusFilter.addActionListener(e -> refresh());
 
         JButton btnRefresh = UiUtils.secondaryButton("Làm mới");
@@ -174,9 +137,33 @@ public class EventPanel extends JPanel implements Refreshable {
         tblParticipants.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
         tblParticipants.getColumnModel().getColumn(3).setCellRenderer(centerRenderer);
 
+        tblEvents.getColumnModel().getColumn(0).setPreferredWidth(60);
+        tblEvents.getColumnModel().getColumn(1).setPreferredWidth(260);
+        tblEvents.getColumnModel().getColumn(2).setPreferredWidth(90);
+        tblEvents.getColumnModel().getColumn(3).setPreferredWidth(100);
+        tblEvents.getColumnModel().getColumn(4).setPreferredWidth(120);
+        tblEvents.getColumnModel().getColumn(5).setPreferredWidth(100);
+        tblEvents.getColumnModel().getColumn(6).setPreferredWidth(110);
+        tblParticipants.getColumnModel().getColumn(1).setPreferredWidth(200);
+        tblParticipants.getColumnModel().getColumn(2).setPreferredWidth(220);
+
+        tblEvents.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && !loading) {
+                onEventSelectionChanged();
+            }
+        });
+
+        lblParticipants = new JLabel("Người tham gia: (chưa chọn sự kiện)");
+        lblParticipants.setFont(lblParticipants.getFont().deriveFont(java.awt.Font.BOLD));
+        lblParticipants.setBorder(BorderFactory.createEmptyBorder(6, 2, 6, 0));
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.setOpaque(false);
+        bottomPanel.add(lblParticipants, BorderLayout.NORTH);
+        bottomPanel.add(new JScrollPane(tblParticipants), BorderLayout.CENTER);
+
         JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
                 new JScrollPane(tblEvents),
-                new JScrollPane(tblParticipants));
+                bottomPanel);
         splitPane.setResizeWeight(0.6);
         splitPane.setBorder(null);
 
@@ -191,30 +178,70 @@ public class EventPanel extends JPanel implements Refreshable {
     }
 
     /**
-     * TODO: NHAT MINH
      * Duoc MainFrame goi moi khi nguoi dung mo trang nay.
      * Doc lai danh sach su kien (co ap dung bo loc trang thai dang chon) roi
      * loadEventTable(...).
      */
     @Override
     public void refresh() {
+        String selectedId = getSelectedEventId();
         try {
             int selectedIndex = cbStatusFilter.getSelectedIndex();
             List<Event> events;
-            if (selectedIndex == 0) {
+            if (selectedIndex <= 0) {
                 events = eventService.listEvents();
             } else {
-                EventStatus status = EventStatus.valueOf(cbStatusFilter.getSelectedItem().toString());
-                events = eventService.listEventsByStatus(status);
+                events = eventService.listEventsByStatus(FILTER_STATUSES[selectedIndex - 1]);
             }
+            loading = true;
             loadEventTable(events);
+            restoreSelection(selectedId);
         } catch (DatabaseException e) {
             UiUtils.showDatabaseError(this, e);
+        } finally {
+            loading = false;
+        }
+        onEventSelectionChanged();
+    }
+
+    private String getSelectedEventId() {
+        int row = tblEvents.getSelectedRow();
+        if (row < 0) {
+            return null;
+        }
+        return (String) eventTableModel.getValueAt(tblEvents.convertRowIndexToModel(row), 0);
+    }
+
+    private void restoreSelection(String eventId) {
+        if (eventId == null) {
+            return;
+        }
+        for (int i = 0; i < eventTableModel.getRowCount(); i++) {
+            if (eventId.equalsIgnoreCase((String) eventTableModel.getValueAt(i, 0))) {
+                int viewRow = tblEvents.convertRowIndexToView(i);
+                tblEvents.setRowSelectionInterval(viewRow, viewRow);
+                return;
+            }
+        }
+    }
+
+    /** Chon/bo chon 1 su kien -> nap lai bang nguoi tham gia. */
+    private void onEventSelectionChanged() {
+        String eventId = getSelectedEventId();
+        if (eventId == null) {
+            loadParticipantTable(null);
+            lblParticipants.setText("Người tham gia: (chưa chọn sự kiện)");
+            return;
+        }
+        Event event = getSelectedEvent();
+        loadParticipantTable(event);
+        if (event != null) {
+            lblParticipants.setText("Người tham gia \"" + event.getEventName() + "\": "
+                    + event.getParticipantCount() + "/" + event.getMaxParticipants());
         }
     }
 
     /**
-     * TODO: NHAT MINH
      * Do danh sach su kien vao bang tren (moi Event 1 hang). Rong -> bang trong
      * (khong nem loi).
      * Cot "Phi hien tai": UiUtils.formatMoney(event.calculateFee()) - goi
@@ -238,7 +265,6 @@ public class EventPanel extends JPanel implements Refreshable {
     }
 
     /**
-     * TODO: NHAT MINH
      * Do event.getParticipants() vao bang duoi; event == null -> bang duoi trong.
      */
     private void loadParticipantTable(Event event) {
@@ -257,7 +283,6 @@ public class EventPanel extends JPanel implements Refreshable {
     }
 
     /**
-     * TODO: NHAT MINH
      * Tra ve su kien dang chon o bang tren (lay lai bang
      * eventService.findEventById(id) o cot Ma
      * de co du lieu moi nhat), hoac null neu chua chon.
@@ -278,7 +303,7 @@ public class EventPanel extends JPanel implements Refreshable {
     }
 
     /**
-     * TODO: NHAT MINH - Mo EventFormDialog; luu thanh cong ->
+     * Mo EventFormDialog; luu thanh cong ->
      * eventService.addEvent(...) roi refresh().
      */
     private void onAddEventClicked() {
@@ -288,7 +313,7 @@ public class EventPanel extends JPanel implements Refreshable {
     }
 
     /**
-     * TODO: NHAT MINH - Chon thanh vien (memberService.listAllMembers()) roi
+     * Chon thanh vien (memberService.listAllMembers()) roi
      * eventService.registerMember(eventId, member).
      */
     private void onRegisterClicked() {
@@ -310,7 +335,7 @@ public class EventPanel extends JPanel implements Refreshable {
     }
 
     /**
-     * TODO: NHAT MINH - Xac nhan roi eventService.cancelRegistration(eventId,
+     * Xac nhan roi eventService.cancelRegistration(eventId,
      * memberId) cho nguoi dang chon o bang duoi.
      */
     private void onCancelRegistrationClicked() {
@@ -334,16 +359,20 @@ public class EventPanel extends JPanel implements Refreshable {
                 "Bạn có chắc chắn muốn hủy đăng ký cho thành viên: " + memberName + "?");
         if (confirm) {
             try {
-                eventService.cancelRegistration(selectedEvent.getEventId(), memberId);
+                if (eventService.cancelRegistration(selectedEvent.getEventId(), memberId)) {
+                    UiUtils.showInfo(this, "Đã hủy đăng ký của " + memberName + ".");
+                } else {
+                    UiUtils.showWarning(this, "Thành viên này không còn trong danh sách đăng ký.");
+                }
                 refresh();
-            } catch (Exception e) {
-                UiUtils.showError(this, "Lỗi khi hủy đăng ký: " + e.getMessage());
+            } catch (DatabaseException e) {
+                UiUtils.showDatabaseError(this, e);
             }
         }
     }
 
     /**
-     * TODO: NHAT MINH - Hop thoai chon trang thai moi ->
+     * Hop thoai chon trang thai moi ->
      * eventService.updateEventStatus(eventId, status).
      */
     private void onChangeStatusClicked() {
@@ -373,8 +402,11 @@ public class EventPanel extends JPanel implements Refreshable {
                 }
                 eventService.updateEventStatus(selectedEvent.getEventId(), newStatus);
                 refresh();
-            } catch (Exception e) {
-                UiUtils.showError(this, "Lỗi khi cập nhật trạng thái: " + e.getMessage());
+            } catch (EventNotFoundException | InvalidInputException e) {
+                UiUtils.showError(this, e.getMessage());
+                refresh();
+            } catch (DatabaseException e) {
+                UiUtils.showDatabaseError(this, e);
             }
         }
     }

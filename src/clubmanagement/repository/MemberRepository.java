@@ -17,11 +17,6 @@ import java.util.List;
  * Chi lo viec DOC/GHI du lieu - KHONG chua business rule (kiem tra trung ID,
  * validate input... van nam o MemberService).
  *
- * MODULE: BIEN (Giai doan 2 - Task B2.1)
- * File nay do Anh Tu (Tech Lead) chot san CHU KY cac method. Bien chi viet
- * phan than method, KHONG doi ten/tham so/kieu tra ve (de Nhat Minh va
- * MemberService lam viec song song khong bi vo).
- *
  * Bang "members": id, name, email, phone, membership_type, join_date, active
  * (xem docs/database.md). Quy uoc chuyen doi:
  * - MembershipType <-> chuoi TEXT (name() / MembershipType.valueOf())
@@ -39,7 +34,6 @@ public class MemberRepository {
     }
 
     /**
-     * TODO: BIEN
      * Them mot thanh vien moi vao bang members.
      * Input: member da duoc MemberService validate (khong null, id/name/email hop
      * le).
@@ -53,7 +47,7 @@ public class MemberRepository {
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
 
-        try (Connection conn = db.getConnection();
+        try (Connection conn = db.open();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, member.getId());
@@ -73,7 +67,6 @@ public class MemberRepository {
     }
 
     /**
-     * TODO: BIEN
      * Cap nhat thong tin thanh vien da co (theo id): name, email, phone,
      * membership_type, active. KHONG doi id va join_date.
      */
@@ -89,7 +82,7 @@ public class MemberRepository {
                 WHERE id = ?
                 """;
 
-        try (Connection conn = db.getConnection();
+        try (Connection conn = db.open();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, member.getName());
@@ -108,7 +101,6 @@ public class MemberRepository {
     }
 
     /**
-     * TODO: BIEN
      * Xoa thanh vien theo id. Cac dong dang ky su kien cua thanh vien nay trong
      * bang event_participants se tu dong bi xoa (ON DELETE CASCADE).
      * 
@@ -118,7 +110,7 @@ public class MemberRepository {
 
         String sql = "DELETE FROM members WHERE id = ?";
 
-        try (Connection conn = db.getConnection();
+        try (Connection conn = db.open();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, id);
@@ -134,7 +126,6 @@ public class MemberRepository {
     }
 
     /**
-     * TODO: BIEN
      * Tim thanh vien theo id (khong phan biet hoa/thuong - cot id da COLLATE
      * NOCASE).
      * 
@@ -149,7 +140,7 @@ public class MemberRepository {
                 WHERE id = ?
                 """;
 
-        try (Connection conn = db.getConnection();
+        try (Connection conn = db.open();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, id);
@@ -170,7 +161,6 @@ public class MemberRepository {
     }
 
     /**
-     * TODO: BIEN
      * Kiem tra id da ton tai chua (dung cho MemberService.addMember).
      */
     public boolean existsById(String id) throws DatabaseException {
@@ -181,7 +171,7 @@ public class MemberRepository {
                 WHERE id = ?
                 """;
 
-        try (Connection conn = db.getConnection();
+        try (Connection conn = db.open();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, id);
@@ -202,7 +192,6 @@ public class MemberRepository {
     }
 
     /**
-     * TODO: BIEN
      * Lay toan bo thanh vien, thu tu theo thoi diem them (ORDER BY rowid).
      * Khong co du lieu -> tra ve danh sach RONG (khong tra null).
      */
@@ -217,7 +206,7 @@ public class MemberRepository {
                 ORDER BY rowid
                 """;
 
-        try (Connection conn = db.getConnection();
+        try (Connection conn = db.open();
                 PreparedStatement ps = conn.prepareStatement(sql);
                 ResultSet rs = ps.executeQuery()) {
 
@@ -234,7 +223,6 @@ public class MemberRepository {
     }
 
     /**
-     * TODO: BIEN
      * Tim thanh vien co ten CHUA chuoi keyword, khong phan biet hoa/thuong.
      * Luu y (edge case): toan tu LIKE cua SQLite chi bo qua hoa/thuong voi ky tu
      * ASCII, ten co dau ("Duc" / "duc" co dau) se khong khop dung. Goi y: lay
@@ -267,14 +255,13 @@ public class MemberRepository {
     }
 
     /**
-     * TODO: BIEN
      * Dem so thanh vien (SELECT COUNT(*)).
      */
     public int count() throws DatabaseException {
 
         String sql = "SELECT COUNT(*) FROM members";
 
-        try (Connection conn = db.getConnection();
+        try (Connection conn = db.open();
                 PreparedStatement ps = conn.prepareStatement(sql);
                 ResultSet rs = ps.executeQuery()) {
 

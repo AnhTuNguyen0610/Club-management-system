@@ -1,5 +1,6 @@
 package clubmanagement.ui;
 
+import clubmanagement.util.InputValidator;
 import clubmanagement.exception.DatabaseException;
 import clubmanagement.exception.DuplicateEventException;
 import clubmanagement.exception.InvalidInputException;

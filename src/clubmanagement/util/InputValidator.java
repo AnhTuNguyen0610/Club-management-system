@@ -1,4 +1,4 @@
-package clubmanagement.ui;
+package clubmanagement.util;
 
 import clubmanagement.exception.InvalidInputException;
 

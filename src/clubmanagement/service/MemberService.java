@@ -5,71 +5,48 @@ import clubmanagement.exception.InvalidInputException;
 import clubmanagement.exception.MemberNotFoundException;
 import clubmanagement.model.Member;
 import clubmanagement.repository.MemberRepository;
+import clubmanagement.util.InputValidator;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
 /**
- * Quan ly toan bo nghiep vu lien quan den Member: them, xoa, tim kiem,
- * cap nhat, sap xep.
- *
- * MODULE: BIEN
+ * Quan ly nghiep vu lien quan den Member: them, xoa, tim kiem, cap nhat, sap xep.
+ * Service chiu trach nhiem VALIDATE du lieu (ca khi UI da kiem tra) va goi
+ * MemberRepository de luu xuong database.
  */
 public class MemberService {
 
-    // TODO: BIEN (Giai doan 2 - Task B2.2)
-    // Hien tai du lieu van luu trong List (in-memory) nen ban Console cu van chay.
-    // Khi chuyen sang database: thay MOI thao tac tren "members" bang
-    // memberRepository,
-    // roi XOA field "members". Giu nguyen chu ky (signature) cac method public va
-    // giu
-    // nguyen cac business rule/exception da co.
-
     private final MemberRepository memberRepository;
 
-    /**
-     * Anh Tu (Tech Lead) da chot constructor nay: Main truyen MemberRepository vao.
-     * Bien KHONG doi chu ky constructor (neu doi se lam Main.java khong bien dich
-     * duoc).
-     */
     public MemberService(MemberRepository memberRepository) {
         this.memberRepository = memberRepository;
     }
 
     /**
-     * Them mot thanh vien moi vao CLB.
-     *
-     * Business rules:
-     * - Neu member null, hoac id/name/email rong -> InvalidInputException.
-     * - Neu id da ton tai -> DuplicateMemberException.
-     * - ID khong phan biet chu hoa/thuong.
+     * Them mot thanh vien moi.
+     * - member null, id/ten rong, email sai dinh dang, SDT sai, thieu loai thanh vien
+     *   -> InvalidInputException.
+     * - ID da ton tai (khong phan biet hoa/thuong) -> DuplicateMemberException.
      */
     public void addMember(Member member)
             throws DuplicateMemberException, InvalidInputException {
-
-        // 1. Kiem tra member null
         if (member == null) {
-            throw new InvalidInputException("Member cannot be null");
+            throw new InvalidInputException("Thông tin thành viên không được để trống.");
+        }
+        member.setId(InputValidator.requireNotBlank("Mã thành viên", member.getId()));
+        member.setName(InputValidator.requireNotBlank("Họ tên", member.getName()));
+        member.setEmail(InputValidator.requireEmail(member.getEmail()));
+        member.setPhone(InputValidator.optionalPhone(member.getPhone()));
+        if (member.getMembershipType() == null || member.getJoinDate() == null) {
+            throw new InvalidInputException("Loại thành viên và ngày tham gia không được để trống.");
         }
 
-        // 2. Kiem tra id, name, email rong hoac chi co khoang trang
-        if (member.getId() == null || member.getId().trim().isEmpty()
-                || member.getName() == null || member.getName().trim().isEmpty()
-                || member.getEmail() == null || member.getEmail().trim().isEmpty()) {
-
-            throw new InvalidInputException(
-                    "Member ID, name and email cannot be empty");
-        }
-
-        // 3. Kiem tra ID da ton tai hay chua
-        // Thay cho viec duyet List members cu
         if (memberRepository.existsById(member.getId())) {
             throw new DuplicateMemberException(
-                    "Member ID already exists: " + member.getId());
+                    "Mã thành viên \"" + member.getId() + "\" đã tồn tại.");
         }
-
-        // 4. Neu hop le thi luu vao database
         memberRepository.insert(member);
     }
 
@@ -81,12 +58,12 @@ public class MemberService {
             throws MemberNotFoundException {
 
         // Xoa truc tiep trong database
-        boolean deleted = memberRepository.deleteById(memberId);
+        boolean deleted = memberId != null && memberRepository.deleteById(memberId.trim());
 
         // Khong xoa duoc -> khong ton tai
         if (!deleted) {
             throw new MemberNotFoundException(
-                    "Member not found: " + memberId);
+                    "Không tìm thấy thành viên có mã: " + memberId);
         }
     }
 
@@ -97,13 +74,12 @@ public class MemberService {
     public Member searchMemberById(String memberId)
             throws MemberNotFoundException {
 
-        // Tim trong database
-        Member member = memberRepository.findById(memberId);
+        Member member = memberId == null ? null : memberRepository.findById(memberId.trim());
 
         // Khong tim thay
         if (member == null) {
             throw new MemberNotFoundException(
-                    "Member not found: " + memberId);
+                    "Không tìm thấy thành viên có mã: " + memberId);
         }
 
         return member;
@@ -155,23 +131,25 @@ public class MemberService {
 
     /**
      * Cap nhat email va phone cua thanh vien.
-     * Neu khong tim thay ID -> MemberNotFoundException.
+     * Email/SDT sai dinh dang -> InvalidInputException; khong tim thay ID -> MemberNotFoundException.
      */
     public void updateMember(String memberId, String newEmail, String newPhone)
-            throws MemberNotFoundException {
+            throws MemberNotFoundException, InvalidInputException {
 
-        // 1. Tim member trong database
-        Member member = memberRepository.findById(memberId);
+        String email = InputValidator.requireEmail(newEmail);
+        String phone = InputValidator.optionalPhone(newPhone);
+
+        Member member = memberId == null ? null : memberRepository.findById(memberId.trim());
 
         // 2. Khong tim thay
         if (member == null) {
             throw new MemberNotFoundException(
-                    "Member not found: " + memberId);
+                    "Không tìm thấy thành viên có mã: " + memberId);
         }
 
         // 3. Cap nhat email va phone trong object
-        member.setEmail(newEmail);
-        member.setPhone(newPhone);
+        member.setEmail(email);
+        member.setPhone(phone);
 
         // 4. Ghi thay doi vao database
         memberRepository.update(member);

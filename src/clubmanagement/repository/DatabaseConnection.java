@@ -101,8 +101,8 @@ public class DatabaseConnection {
 
         String createParticipants =
                 "CREATE TABLE IF NOT EXISTS event_participants ("
-                + " event_id  TEXT NOT NULL,"
-                + " member_id TEXT NOT NULL,"
+                + " event_id  TEXT NOT NULL COLLATE NOCASE,"
+                + " member_id TEXT NOT NULL COLLATE NOCASE,"
                 + " PRIMARY KEY (event_id, member_id),"
                 + " FOREIGN KEY (event_id)  REFERENCES events(event_id)  ON DELETE CASCADE,"
                 + " FOREIGN KEY (member_id) REFERENCES members(id)       ON DELETE CASCADE"

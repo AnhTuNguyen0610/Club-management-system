@@ -13,36 +13,18 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Truy cap cac bang "events" va "event_participants" bang JDBC.
- * Chi lo DOC/GHI du lieu - business rule (su kien day, trung ID...) van nam o
- * EventService.
+ * Chi lo DOC/GHI du lieu; business rule (suc chua, trung ID...) nam o EventService.
  *
- * MODULE: NHAT MINH (Giai doan 2 - Task N2.1)
- * Anh Tu chot san CHU KY method. Nhat Minh chi viet phan than, KHONG doi
- * ten/tham so/kieu tra ve.
- *
- * Bang "events" luu ca 3 loai su kien trong MOT bang, phan biet bang cot
- * event_type:
- * WORKSHOP -> fee = baseFee, speaker
- * COMPETITION -> fee = entryFee, prize_value
- * SOCIAL -> location
- * Cac cot khong dung cho loai do de NULL. Khi doc len phai tao dung lop con
- * (new Workshop / new Competition / new SocialEvent) - day chinh la cho the
- * hien tinh DA HINH khi nap du lieu tu DB.
- *
- * Danh sach nguoi tham gia (Event.getParticipants()) lay tu bang
- * event_participants
- * JOIN members. De MODULE nay doc lap voi MemberRepository (khong phai cho
- * Bien),
- * hay tu viet 1 ham private map ResultSet -> Member ngay trong file nay.
- * Quy uoc chuyen doi giong MemberRepository: MembershipType/EventStatus <->
- * TEXT (name()/valueOf()),
- * LocalDate <-> TEXT ISO, boolean <-> 1/0.
+ * Ca 3 loai su kien nam trong MOT bang, phan biet bang cot event_type
+ * (WORKSHOP / COMPETITION / SOCIAL). Khi doc len, repository tao dung lop con
+ * (Workshop / Competition / SocialEvent) - the hien tinh da hinh.
  */
 public class EventRepository {
 
@@ -53,7 +35,6 @@ public class EventRepository {
     }
 
     /**
-     * TODO: NHAT MINH
      * Them su kien moi (ghi vao bang events; danh sach participants luc moi tao la
      * rong).
      * Dung instanceof (hoac getEventTypeDescription) de xac dinh event_type va cac
@@ -76,22 +57,24 @@ public class EventRepository {
                 ps.setString(6, "WORKSHOP");
                 ps.setDouble(7, w.getBaseFee());
                 ps.setString(8, w.getSpeaker());
-                ps.setObject(9, null);
-                ps.setString(10, null);
+                ps.setNull(9, Types.REAL);
+                ps.setNull(10, Types.VARCHAR);
             } else if (event instanceof Competition) {
                 Competition c = (Competition) event;
                 ps.setString(6, "COMPETITION");
                 ps.setDouble(7, c.getEntryFee());
-                ps.setString(8, null);
+                ps.setNull(8, Types.VARCHAR);
                 ps.setDouble(9, c.getPrizeValue());
-                ps.setString(10, null);
+                ps.setNull(10, Types.VARCHAR);
             } else if (event instanceof SocialEvent) {
                 SocialEvent s = (SocialEvent) event;
                 ps.setString(6, "SOCIAL");
-                ps.setObject(7, null);
-                ps.setString(8, null);
-                ps.setObject(9, null);
+                ps.setNull(7, Types.REAL);
+                ps.setNull(8, Types.VARCHAR);
+                ps.setNull(9, Types.REAL);
                 ps.setString(10, s.getLocation());
+            } else {
+                throw new DatabaseException("Loai su kien khong duoc ho tro: " + event.getClass().getSimpleName());
             }
             ps.executeUpdate();
 
@@ -101,7 +84,6 @@ public class EventRepository {
     }
 
     /**
-     * TODO: NHAT MINH
      * Cap nhat trang thai su kien (UPDATE events SET status = ? WHERE event_id =
      * ?).
      * 
@@ -122,7 +104,6 @@ public class EventRepository {
     }
 
     /**
-     * TODO: NHAT MINH
      * Tim su kien theo id (khong phan biet hoa/thuong), KEM danh sach participants.
      * 
      * @return Event (dung lop con Workshop/Competition/SocialEvent), hoac null neu
@@ -149,7 +130,6 @@ public class EventRepository {
     }
 
     /**
-     * TODO: NHAT MINH
      * Kiem tra eventId da ton tai chua (dung cho EventService.addEvent).
      */
     public boolean existsById(String eventId) throws DatabaseException {
@@ -168,13 +148,12 @@ public class EventRepository {
     }
 
     /**
-     * TODO: NHAT MINH
      * Lay toan bo su kien (kem participants), thu tu theo thoi diem them.
      * Khong co du lieu -> danh sach RONG (khong tra null).
      */
     public List<Event> findAll() throws DatabaseException {
         List<Event> events = new ArrayList<>();
-        String sql = "SELECT * FROM events";
+        String sql = "SELECT * FROM events ORDER BY rowid";
 
         try (Connection conn = db.open();
                 PreparedStatement ps = conn.prepareStatement(sql);
@@ -192,12 +171,11 @@ public class EventRepository {
     }
 
     /**
-     * TODO: NHAT MINH
      * Lay cac su kien co trang thai nhat dinh (kem participants).
      */
     public List<Event> findByStatus(EventStatus status) throws DatabaseException {
         List<Event> events = new ArrayList<>();
-        String sql = "SELECT * FROM events WHERE status = ?";
+        String sql = "SELECT * FROM events WHERE status = ? ORDER BY rowid";
 
         try (Connection conn = db.open();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -217,7 +195,6 @@ public class EventRepository {
     }
 
     /**
-     * TODO: NHAT MINH
      * Ghi 1 dong vao event_participants (dang ky thanh vien vao su kien).
      * Neu (eventId, memberId) da ton tai -> bo qua, KHONG nem loi
      * (goi y: INSERT OR IGNORE).
@@ -236,25 +213,37 @@ public class EventRepository {
     }
 
     /**
-     * TODO: NHAT MINH
      * Xoa 1 dong khoi event_participants (huy dang ky). Khong ton tai -> bo qua.
      */
-    public void removeParticipant(String eventId, String memberId) throws DatabaseException {
+    public boolean removeParticipant(String eventId, String memberId) throws DatabaseException {
         String sql = "DELETE FROM event_participants WHERE event_id = ? AND member_id = ?";
         try (Connection conn = db.open();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, eventId);
             ps.setString(2, memberId);
-            ps.executeUpdate();
+            return ps.executeUpdate() > 0;
 
         } catch (SQLException e) {
             throw new DatabaseException("Loi khi huy dang ky su kien", e);
         }
     }
 
+    /** Kiem tra thanh vien co ton tai trong bang members khong. */
+    public boolean memberExists(String memberId) throws DatabaseException {
+        String sql = "SELECT 1 FROM members WHERE id = ?";
+        try (Connection conn = db.open();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, memberId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            throw new DatabaseException("Loi khi kiem tra thanh vien: " + memberId, e);
+        }
+    }
+
     /**
-     * TODO: NHAT MINH
      * Dem so su kien (SELECT COUNT(*)).
      */
     public int count() throws DatabaseException {
@@ -287,18 +276,17 @@ public class EventRepository {
         int max = rs.getInt("max_participants");
         EventStatus status = EventStatus.valueOf(rs.getString("status"));
 
-        Event event = null;
+        Event event;
         if ("WORKSHOP".equals(type)) {
             event = new Workshop(id, name, date, max, rs.getDouble("fee"), rs.getString("speaker"));
         } else if ("COMPETITION".equals(type)) {
             event = new Competition(id, name, date, max, rs.getDouble("fee"), rs.getDouble("prize_value"));
         } else if ("SOCIAL".equals(type)) {
             event = new SocialEvent(id, name, date, max, rs.getString("location"));
+        } else {
+            throw new SQLException("Loai su kien khong hop le trong database: " + type);
         }
-
-        if (event != null) {
-            event.setStatus(status);
-        }
+        event.setStatus(status);
         return event;
     }
 
@@ -315,7 +303,7 @@ public class EventRepository {
     private void loadParticipantsForEvent(Connection conn, Event event) throws SQLException {
         String sql = "SELECT m.* FROM members m " +
                 "JOIN event_participants ep ON m.id = ep.member_id " +
-                "WHERE ep.event_id = ?";
+                "WHERE ep.event_id = ? ORDER BY m.rowid";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, event.getEventId());
@@ -329,7 +317,7 @@ public class EventRepository {
                             MembershipType.valueOf(rs.getString("membership_type")),
                             LocalDate.parse(rs.getString("join_date")));
                     member.setActive(rs.getInt("active") == 1);
-                    event.getParticipants().add(member);
+                    event.addParticipant(member);
                 }
             }
         }

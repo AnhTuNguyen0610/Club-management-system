@@ -2,6 +2,9 @@ package clubmanagement.ui;
 
 import clubmanagement.exception.DatabaseException;
 import clubmanagement.exception.EventFullException;
+import clubmanagement.exception.EventNotFoundException;
+import clubmanagement.exception.InvalidInputException;
+import clubmanagement.exception.MemberNotFoundException;
 import clubmanagement.model.Event;
 import clubmanagement.model.Member;
 import clubmanagement.service.EventService;
@@ -128,15 +131,18 @@ public class RegisterMemberDialog extends JDialog {
 
         try {
             Member selectedMember = memberService.searchMemberById(memberId);
-            if (selectedMember != null) {
-                eventService.registerMember(event.getEventId(), selectedMember);
+            if (eventService.registerMember(event.getEventId(), selectedMember)) {
                 UiUtils.showInfo(this, "Đăng ký thành công!");
                 dispose();
+            } else {
+                UiUtils.showWarning(this, selectedMember.getName() + " đã đăng ký sự kiện này rồi.");
             }
-        } catch (EventFullException e) {
+        } catch (EventFullException | InvalidInputException e) {
             UiUtils.showWarning(this, e.getMessage());
-        } catch (Exception e) {
-            UiUtils.showError(this, "Lỗi khi đăng ký: " + e.getMessage());
+        } catch (EventNotFoundException | MemberNotFoundException e) {
+            UiUtils.showError(this, e.getMessage());
+        } catch (DatabaseException e) {
+            UiUtils.showDatabaseError(this, e);
         }
     }
 }

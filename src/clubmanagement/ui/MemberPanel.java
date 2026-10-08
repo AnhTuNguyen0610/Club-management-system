@@ -1,5 +1,6 @@
 package clubmanagement.ui;
 
+import clubmanagement.util.InputValidator;
 import clubmanagement.exception.DatabaseException;
 import clubmanagement.exception.DuplicateMemberException;
 import clubmanagement.exception.InvalidInputException;
@@ -24,7 +25,6 @@ import java.util.List;
 /**
  * Man hinh QUAN LY THANH VIEN (Swing).
  *
- * MODULE: BIEN (Giai doan 3 - Task B3.1)
  * Anh Tu da gan san man hinh nay vao MainFrame (constructor nay do Anh Tu chot,
  * KHONG doi tham so). Bien chi lam ben trong file nay + tao them file
  * MemberFormDialog.java (file MOI, khong dung cham file cua nguoi khac).
@@ -177,8 +177,6 @@ public class MemberPanel extends JPanel implements Refreshable {
             loadTable(members);
         } catch (DatabaseException e) {
             UiUtils.showDatabaseError(this, e);
-        } catch (Exception e) {
-            UiUtils.showError(this, e.getMessage());
         }
     }
 
@@ -235,51 +233,24 @@ public class MemberPanel extends JPanel implements Refreshable {
      * Mo dialog THEM.
      */
     private void onAddClicked() {
-        MemberFormDialog dialog =
-                new MemberFormDialog(
-                        javax.swing.SwingUtilities.getWindowAncestor(this),
-                        "Thêm thành viên",
-                        null
-                );
+        MemberFormDialog dialog = new MemberFormDialog(
+                javax.swing.SwingUtilities.getWindowAncestor(this),
+                "Thêm thành viên",
+                null);
 
-        dialog.setVisible(true);
-
-        if (!dialog.isSaved()) {
+        Member input = dialog.showDialog();
+        if (input == null) {
             return;
         }
 
         try {
-            String id = dialog.getMemberId();
-            String name = dialog.getNameValue();
-            String email = dialog.getEmail();
-            String phone = dialog.getPhone();
-            clubmanagement.model.MembershipType membershipType =
-                    dialog.getMembershipType();
-
-            Member member = new Member(
-                    id,
-                    name,
-                    email,
-                    phone,
-                    membershipType,
-                    LocalDate.now()
-            );
-
-            memberService.addMember(member);
-
+            memberService.addMember(input);
             refresh();
-
-        } catch (DuplicateMemberException
-                 | InvalidInputException
-                 | MemberNotFoundException e) {
-
+            UiUtils.showInfo(this, "Đã thêm thành viên " + input.getName() + ".");
+        } catch (DuplicateMemberException | InvalidInputException e) {
             UiUtils.showError(this, e.getMessage());
-
         } catch (DatabaseException e) {
             UiUtils.showDatabaseError(this, e);
-
-        } catch (Exception e) {
-            UiUtils.showError(this, e.getMessage());
         }
     }
 
@@ -294,42 +265,28 @@ public class MemberPanel extends JPanel implements Refreshable {
             return;
         }
 
-        MemberFormDialog dialog =
-                new MemberFormDialog(
-                        javax.swing.SwingUtilities.getWindowAncestor(this),
-                        "Sửa thành viên",
-                        selectedMember
-                );
+        MemberFormDialog dialog = new MemberFormDialog(
+                javax.swing.SwingUtilities.getWindowAncestor(this),
+                "Sửa thành viên",
+                selectedMember);
 
-        dialog.setVisible(true);
-
-        if (!dialog.isSaved()) {
+        Member input = dialog.showDialog();
+        if (input == null) {
             return;
         }
 
         try {
-            String email = dialog.getEmail();
-            String phone = dialog.getPhone();
-
             memberService.updateMember(
                     selectedMember.getId(),
-                    email,
-                    phone
-            );
-
+                    input.getEmail(),
+                    input.getPhone());
             refresh();
-
-        } catch (MemberNotFoundException
-                 | InvalidInputException
-                 | DuplicateMemberException e) {
-
+            UiUtils.showInfo(this, "Đã cập nhật thông tin thành viên.");
+        } catch (MemberNotFoundException | InvalidInputException e) {
             UiUtils.showError(this, e.getMessage());
-
+            refresh();
         } catch (DatabaseException e) {
             UiUtils.showDatabaseError(this, e);
-
-        } catch (Exception e) {
-            UiUtils.showError(this, e.getMessage());
         }
     }
 
@@ -348,7 +305,8 @@ public class MemberPanel extends JPanel implements Refreshable {
                 this,
                 "Bạn có chắc muốn xóa thành viên \""
                         + selectedMember.getName()
-                        + "\" (" + selectedMember.getId() + ")?"
+                        + "\" (" + selectedMember.getId() + ")?\n"
+                        + "Các đăng ký sự kiện của thành viên này cũng sẽ bị xóa."
         );
 
         if (!confirmed) {
@@ -359,15 +317,13 @@ public class MemberPanel extends JPanel implements Refreshable {
             memberService.removeMember(selectedMember.getId());
 
             refresh();
+            UiUtils.showInfo(this, "Đã xóa thành viên " + selectedMember.getName() + ".");
 
         } catch (MemberNotFoundException e) {
             UiUtils.showError(this, e.getMessage());
 
         } catch (DatabaseException e) {
             UiUtils.showDatabaseError(this, e);
-
-        } catch (Exception e) {
-            UiUtils.showError(this, e.getMessage());
         }
     }
 
@@ -390,9 +346,6 @@ public class MemberPanel extends JPanel implements Refreshable {
 
         } catch (DatabaseException e) {
             UiUtils.showDatabaseError(this, e);
-
-        } catch (Exception e) {
-            UiUtils.showError(this, e.getMessage());
         }
     }
 }
